@@ -1,0 +1,89 @@
+--- gtkhtml/testgtkhtml.c	2008-09-06 11:42:56.000000000 +0000
++++ gtkhtml/testgtkhtml.c	2008-09-06 14:34:14.000000000 +0000
+@@ -21,6 +21,7 @@
+ #include <gnome.h>
+ #include <bonobo.h>
+ #include <sys/types.h>
++#include <iconv.h>
+ 
+ #include <glib.h>
+ #include <glib/gstdio.h>
+@@ -670,8 +671,76 @@
+ 		return;
+ 	}
+ 
+-	gtk_html_write (html, handle, msg->response_body->data,
+-			msg->response_body->length);
++	{
++		char * ContentType=NULL;
++		ContentType=soup_message_headers_get(msg->response_headers,"Content-type");
++		char * buf=msg->response_body->data;
++		size_t length=msg->response_body->length;
++		size_t newlength=0;//for iconv
++		size_t oldlength=length;//save length
++		size_t unmap_length=length;//save for unmap
++		char *newbuf=buf;//for iconv
++		char *oldbuf=buf;//save buffer
++		char *unmap_buf=buf;//save for unmap
++		if(ContentType!=NULL)
++			if(!strcmp(ContentType,"text/html"))
++				ContentType=NULL;//not correct encoding
++		if(ContentType==NULL)
++			if(*buf=='<'||*buf=='\r'||*buf=='\n')///chech html
++			{
++				char * temp=strstr(buf,"text/html; ");
++				if(temp==NULL)
++				{
++					ContentType="text/html; charset=utf8";
++				}
++				else
++				{
++					char * end=strchr(temp,'"');
++					if(end==NULL)
++					{
++						ContentType="text/html; charset=utf8";
++					}
++					else
++					{
++						ContentType=calloc(end-temp+1,sizeof(char));
++						strncpy(ContentType,temp,end-temp);
++						g_print("new =%s\n",ContentType);
++					}
++				}
++			}
++		char * encodingChar=NULL;
++		if(ContentType!=NULL)
++		{
++        		g_print("ContentType=%s\n",ContentType);
++			if(!strncmp(ContentType,"text/html; charset=",strlen("text/html; charset=")))
++			{
++				encodingChar=ContentType+strlen("text/html; charset=");
++			}
++			else if(!strncmp(ContentType,"text/html; encoding=",strlen("text/html; charset=")))
++			{
++				encodingChar=ContentType+strlen("text/html; encoding=");
++			}
++		}
++		
++		if(encodingChar)
++		{
++        		g_print("encoding=%s\n",encodingChar);
++			if(strncmp("utf8",encodingChar,strlen("utf8")))
++				if(strncmp("utf-8",encodingChar,strlen("utf-8")))
++				{
++					newlength=length*3+1;//for iconv
++					oldlength=newlength;//save length
++					newbuf=calloc(sizeof(char),newlength);//for iconv
++					oldbuf=newbuf;//save buffer
++					iconv_t iconv_cd=iconv_open("utf-8",encodingChar);
++					iconv(iconv_cd,&buf,&length,&newbuf,&newlength);
++					g_print("%d----%d\n",oldlength,newlength);
++					iconv_close(iconv_cd);
++				}
++				
++		}
++		gtk_html_write (html, handle, oldbuf, oldlength-newlength);
++	}
+ 	gtk_html_end (html, handle, GTK_HTML_STREAM_OK);
+ }
+ 
