@@ -1,0 +1,1184 @@
+diff -u -r gtkhtml/gtkhtml/gtkhtml.c gtkhtml-my/gtkhtml/gtkhtml.c
+--- gtkhtml/gtkhtml/gtkhtml.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/gtkhtml.c	2008-09-13 18:25:42.000000000 +0000
+@@ -3459,7 +3459,7 @@
+ 	html->allow_selection = allow;
+ }
+ 
+-
++
+ /**
+  * gtk_html_begin_full:
+  * @html: the GtkHTML widget to operate on.
+@@ -3549,7 +3549,7 @@
+ {
+ 	g_return_val_if_fail (! gtk_html_get_editable (html), NULL);
+ 
+-	return gtk_html_begin_full (html, NULL, NULL, 0);
++	return gtk_html_begin_full (html, NULL, content_type , 0);
+ }
+ 
+ /**
+@@ -4482,7 +4482,8 @@
+ gtk_html_set_default_content_type (GtkHTML *html, gchar *content_type)
+ {
+ 	g_free (html->priv->content_type);
+-
++    
++    html_engine_set_content_type(html->engine,content_type);
+ 	if (content_type) {
+ 		html->priv->content_type = g_ascii_strdown (content_type, -1);
+ 	} else
+diff -u -r gtkhtml/gtkhtml/htmlbutton.c gtkhtml-my/gtkhtml/htmlbutton.c
+--- gtkhtml/gtkhtml/htmlbutton.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmlbutton.c	2008-09-14 08:02:19.000000000 +0000
+@@ -64,19 +64,19 @@
+ 
+ 
+ static gchar *
+-encode (HTMLEmbedded *e)
++encode (HTMLEmbedded *e,const gchar *codepage)
+ {
+ 	GString *encoding = g_string_new ("");
+ 	gchar *ptr;
+ 
+ 	if(strlen (e->name) && (HTML_BUTTON(e)->successful)) {
+-		ptr = html_embedded_encode_string (e->name);
++		ptr = html_embedded_encode_string (e->name, codepage);
+ 		encoding = g_string_append (encoding, ptr);
+ 		g_free (ptr);
+ 
+ 		encoding = g_string_append_c (encoding, '=');
+ 
+-		ptr = html_embedded_encode_string (e->value);
++		ptr = html_embedded_encode_string (e->value, codepage);
+ 		encoding = g_string_append (encoding, ptr);
+ 		g_free (ptr);
+ 	}
+diff -u -r gtkhtml/gtkhtml/htmlcheckbox.c gtkhtml-my/gtkhtml/htmlcheckbox.c
+--- gtkhtml/gtkhtml/htmlcheckbox.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmlcheckbox.c	2008-09-14 07:44:49.000000000 +0000
+@@ -38,20 +38,19 @@
+ }
+ 
+ static gchar *
+-encode (HTMLEmbedded *e)
++encode (HTMLEmbedded *e,const gchar *codepage)
+ {
+ 	GString *encoding = g_string_new ("");
+ 	gchar *ptr;
+ 
+ 	if(strlen (e->name) && gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (e->widget))) {
+ 
+-		ptr = html_embedded_encode_string (e->name);
++		ptr = html_embedded_encode_string (e->name, codepage);
+ 		encoding = g_string_append (encoding, ptr);
+ 		g_free (ptr);
+ 
+ 		encoding = g_string_append_c (encoding, '=');
+-
+-		ptr = html_embedded_encode_string (e->value);
++		ptr = html_embedded_encode_string (e->value, codepage);
+ 		encoding = g_string_append (encoding, ptr);
+ 		g_free (ptr);
+ 	}
+diff -u -r gtkhtml/gtkhtml/htmlembedded.c gtkhtml-my/gtkhtml/htmlembedded.c
+--- gtkhtml/gtkhtml/htmlembedded.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmlembedded.c	2008-09-14 20:57:54.000000000 +0000
+@@ -33,6 +33,8 @@
+ #include "htmliframe.h"
+ #include "htmlpainter.h"
+ #include "htmlengine.h"
++//For use iconv
++#include "htmltokenizer.h"
+ 
+ HTMLEmbeddedClass html_embedded_class;
+ static HTMLObjectClass *parent_class = NULL;
+@@ -198,7 +200,7 @@
+ }
+ 
+ static gchar *
+-encode (HTMLEmbedded *e)
++encode (HTMLEmbedded *e,const gchar* codepage)
+ {
+ 	return g_strdup ("");
+ }
+@@ -210,9 +212,9 @@
+ }
+ 
+ gchar *
+-html_embedded_encode (HTMLEmbedded *e)
++html_embedded_encode (HTMLEmbedded *e,const gchar* codepage)
+ {
+-	return HTML_EMBEDDED_CLASS (HTML_OBJECT (e)->klass)->encode (e);
++	return HTML_EMBEDDED_CLASS (HTML_OBJECT (e)->klass)->encode (e, codepage);
+ }
+ 
+ void
+@@ -228,13 +230,20 @@
+ }
+ 
+ gchar *
+-html_embedded_encode_string (const gchar *str)
++html_embedded_encode_string (const gchar *before,const gchar *codepage)
+ {
++	    gchar* str = before;
++	    iconv_t iconv_cd = genIconvTo(codepage);
++	    if(iconv_cd)
++	    {
++	    	str= ConvertIconv(iconv_cd,before);
++	    	iconv_close(iconv_cd);
++	    }
+         static gchar *safe = "$-._!*(),"; /* RFC 1738 */
+         unsigned pos = 0;
+         GString *encoded = g_string_new ("");
+         gchar buffer[5], *ptr;
+-	guchar c;
++		guchar c;
+ 
+         while ( pos < strlen(str) ) {
+ 
+@@ -268,7 +277,7 @@
+ 
+ 	g_string_free (encoded, FALSE);
+ 
+-        return ptr;
++    return ptr;
+ }
+ 
+ void
+diff -u -r gtkhtml/gtkhtml/htmlembedded.h gtkhtml-my/gtkhtml/htmlembedded.h
+--- gtkhtml/gtkhtml/htmlembedded.h	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmlembedded.h	2008-09-14 08:05:12.000000000 +0000
+@@ -45,7 +45,7 @@
+ 
+ 
+ 	void   (*reset)    (HTMLEmbedded *element);
+-	gchar *(*encode)   (HTMLEmbedded *element);
++	gchar *(*encode)   (HTMLEmbedded *element,const gchar* codepage);
+ 	void   (*reparent) (HTMLEmbedded *element, GtkWidget *new_parent);
+ };
+ 
+@@ -71,8 +71,10 @@
+ void          html_embedded_reset          (HTMLEmbedded      *element);
+ void          html_embedded_reparent       (HTMLEmbedded      *element,
+ 					    GtkWidget         *new_parent);
+-gchar        *html_embedded_encode         (HTMLEmbedded      *element);
+-gchar        *html_embedded_encode_string  (const gchar       *str);
++gchar        *html_embedded_encode         (HTMLEmbedded      *element,
++						const gchar * codepage);
++gchar        *html_embedded_encode_string  (const gchar       *str,
++						const gchar * codepage);
+ HTMLEmbedded *html_embedded_new_widget     (GtkWidget         *parent,
+ 					    GtkHTMLEmbedded   *eb,
+ 					    HTMLEngine        *engine);
+diff -u -r gtkhtml/gtkhtml/htmlengine.c gtkhtml-my/gtkhtml/htmlengine.c
+--- gtkhtml/gtkhtml/htmlengine.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmlengine.c	2008-09-14 19:24:17.000000000 +0000
+@@ -2766,11 +2766,24 @@
+ 	html_element_free (element);
+ }
+ 
+-
++void 
++html_engine_set_content_type(HTMLEngine *e,const gchar* content_type)
++{
++	g_return_if_fail (HTML_IS_ENGINE (e));
++	html_tokenizer_change_content_type(e->ht,content_type);
++}
++
++gchar *  html_engine_get_content_type(HTMLEngine *e)
++{
++	g_return_val_if_fail (HTML_IS_ENGINE (e), NULL);
++	return html_tokenizer_get_content_type(e->ht);
++}
++
+ static void
+ element_parse_meta (HTMLEngine *e, HTMLObject *clue, const gchar *str)
+ {
+ 	int refresh = 0;
++	int contenttype = 0;
+ 	int refresh_delay = 0;
+ 	gchar *refresh_url = NULL;
+ 
+@@ -2778,16 +2791,23 @@
+ 
+ 	html_string_tokenizer_tokenize(e->st, str + 5, " >");
+ 	while (html_string_tokenizer_has_more_tokens (e->st)) {
+-
+ 		const gchar* token = html_string_tokenizer_next_token(e->st);
+ 		if (g_ascii_strncasecmp(token, "http-equiv=", 11) == 0 ) {
+ 			if (g_ascii_strncasecmp(token + 11, "refresh", 7) == 0 )
+ 				refresh = 1;
++			if (g_ascii_strncasecmp(token + 11, "content-type", 12) == 0 )
++				contenttype = 1;
+ 		} else if (g_ascii_strncasecmp(token, "content=", 8) == 0) {
++			const gchar *content;
++			content = token + 8;	
++			if(contenttype)
++			{
++				contenttype = 0;
++				html_engine_set_content_type(e,content);
++			}
+ 			if (refresh) {
+-				const gchar *content;
+-				content = token + 8;
+-
++				refresh = 0;
++				
+ 				/* The time in seconds until the refresh */
+ 				refresh_delay = atoi(content);
+ 
+diff -u -r gtkhtml/gtkhtml/htmlengine.h gtkhtml-my/gtkhtml/htmlengine.h
+--- gtkhtml/gtkhtml/htmlengine.h	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmlengine.h	2008-09-14 08:40:32.000000000 +0000
+@@ -315,6 +315,9 @@
+ void           html_engine_stop_parser      (HTMLEngine  *e);
+ void           html_engine_stop             (HTMLEngine  *e);
+ void           html_engine_flush            (HTMLEngine  *e);
++void 		   html_engine_set_content_type(HTMLEngine *e,
++					const gchar* content_type);
++gchar *  html_engine_get_content_type(HTMLEngine *e);
+ 
+ /* Rendering control.  */
+ gint  html_engine_calc_min_width       (HTMLEngine *e);
+diff -u -r gtkhtml/gtkhtml/htmlform.c gtkhtml-my/gtkhtml/htmlform.c
+--- gtkhtml/gtkhtml/htmlform.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmlform.c	2008-09-14 08:39:14.000000000 +0000
+@@ -125,10 +125,11 @@
+ 	gint first = TRUE;
+ 	GList *i = form->elements;
+ 	gchar *ptr;
+-
++	
++	gchar * codepage= html_engine_get_content_type(form->engine);
++	
+ 	while (i) {
+-		ptr = html_embedded_encode (HTML_EMBEDDED (i->data));
+-
++		ptr = html_embedded_encode (HTML_EMBEDDED (i->data), codepage);
+ 		if (strlen (ptr)) {
+ 			if(!first)
+ 				encoding = g_string_append_c (encoding, '&');
+diff -u -r gtkhtml/gtkhtml/htmlhidden.c gtkhtml-my/gtkhtml/htmlhidden.c
+--- gtkhtml/gtkhtml/htmlhidden.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmlhidden.c	2008-09-14 07:45:38.000000000 +0000
+@@ -28,19 +28,19 @@
+ 
+ 
+ static gchar *
+-encode (HTMLEmbedded *e)
++encode (HTMLEmbedded *e,const gchar *codepage)
+ {
+ 	GString *encoding = g_string_new ("");
+ 	gchar *ptr;
+ 
+ 	if(strlen (e->name)) {
+-		ptr = html_embedded_encode_string (e->name);
++		ptr = html_embedded_encode_string (e->name, codepage);
+ 		encoding = g_string_append (encoding, ptr);
+ 		g_free (ptr);
+ 
+ 		encoding = g_string_append_c (encoding, '=');
+ 
+-		ptr = html_embedded_encode_string (e->value);
++		ptr = html_embedded_encode_string (e->value, codepage);
+ 		encoding = g_string_append (encoding, ptr);
+ 		g_free (ptr);
+ 	}
+diff -u -r gtkhtml/gtkhtml/htmlimageinput.c gtkhtml-my/gtkhtml/htmlimageinput.c
+--- gtkhtml/gtkhtml/htmlimageinput.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmlimageinput.c	2008-09-14 07:45:49.000000000 +0000
+@@ -107,13 +107,13 @@
+ 
+ 
+ static gchar *
+-encode (HTMLEmbedded *e)
++encode (HTMLEmbedded *e,const gchar *codepage)
+ {
+ 	GString *encoding = g_string_new ("");
+ 	gchar *ptr;
+ 
+ 	if(strlen (e->name)) {
+-		ptr = html_embedded_encode_string (e->name);
++		ptr = html_embedded_encode_string (e->name, codepage);
+ 		encoding = g_string_assign (encoding, ptr);
+ 		g_free (ptr);
+ 
+@@ -121,7 +121,7 @@
+ 		encoding = g_string_append (encoding, ptr);
+ 		g_free (ptr);
+ 
+-		ptr = html_embedded_encode_string (e->name);
++		ptr = html_embedded_encode_string (e->name, codepage);
+ 		encoding = g_string_append (encoding, ptr);
+ 		g_free (ptr);
+ 
+diff -u -r gtkhtml/gtkhtml/htmlradio.c gtkhtml-my/gtkhtml/htmlradio.c
+--- gtkhtml/gtkhtml/htmlradio.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmlradio.c	2008-09-14 07:45:59.000000000 +0000
+@@ -49,20 +49,20 @@
+ }
+ 
+ static gchar *
+-encode (HTMLEmbedded *e)
++encode (HTMLEmbedded *e,const gchar *codepage)
+ {
+ 	GString *encoding = g_string_new ("");
+ 	gchar *ptr;
+ 
+ 	if(strlen (e->name) && gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (e->widget))) {
+ 
+-		ptr = html_embedded_encode_string (e->name);
++		ptr = html_embedded_encode_string (e->name, codepage);
+ 		encoding = g_string_append (encoding, ptr);
+ 		g_free (ptr);
+ 
+ 		encoding = g_string_append_c (encoding, '=');
+ 
+-		ptr = html_embedded_encode_string (e->value);
++		ptr = html_embedded_encode_string (e->value, codepage);
+ 		encoding = g_string_append (encoding, ptr);
+ 		g_free (ptr);
+ 	}
+diff -u -r gtkhtml/gtkhtml/htmlselect.c gtkhtml-my/gtkhtml/htmlselect.c
+--- gtkhtml/gtkhtml/htmlselect.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmlselect.c	2008-09-14 08:58:13.000000000 +0000
+@@ -102,7 +102,8 @@
+ add_selected (GtkTreeModel *model,
+               GtkTreePath *path,
+               GtkTreeIter *iter,
+-              struct EmbeddedSelectionInfo *info)
++              struct EmbeddedSelectionInfo *info,
++              const gchar* codepage)
+ {
+ 	gchar *value, *encoded;
+ 
+@@ -111,13 +112,13 @@
+ 	if (info->string->len)
+ 		g_string_append_c (info->string, '&');
+ 
+-	encoded = html_embedded_encode_string (info->embedded->name);
++	encoded = html_embedded_encode_string (info->embedded->name, codepage);
+ 	g_string_append (info->string, encoded);
+ 	g_free (encoded);
+ 
+ 	g_string_append_c (info->string, '=');
+ 
+-	encoded = html_embedded_encode_string (value);
++	encoded = html_embedded_encode_string (value, codepage);
+ 	g_string_append (info->string, encoded);
+ 	g_free (encoded);
+ 
+@@ -125,7 +126,7 @@
+ }
+ 
+ static gchar *
+-encode (HTMLEmbedded *e)
++encode (HTMLEmbedded *e,const gchar *codepage)
+ {
+ 	struct EmbeddedSelectionInfo info;
+ 	HTMLSelect *s = HTML_SELECT(e);
+@@ -146,7 +147,7 @@
+ 
+ 			combo_box = GTK_COMBO_BOX (e->widget);
+ 			if (gtk_combo_box_get_active_iter (combo_box, &iter))
+-				add_selected (s->model, NULL, &iter, &info);
++				add_selected (s->model, NULL, &iter, &info, codepage);
+ 		}
+ 	}
+ 
+diff -u -r gtkhtml/gtkhtml/htmltextarea.c gtkhtml-my/gtkhtml/htmltextarea.c
+--- gtkhtml/gtkhtml/htmltextarea.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmltextarea.c	2008-09-14 07:46:23.000000000 +0000
+@@ -63,7 +63,7 @@
+ }
+ 
+ static gchar *
+-encode (HTMLEmbedded *e)
++encode (HTMLEmbedded *e,const gchar *codepage)
+ {
+ 	GString *encoding = g_string_new ("");
+ 	gchar *encoded_str, *utf8_str, *gtk_text;
+@@ -71,7 +71,7 @@
+ 	if(strlen (e->name)) {
+ 		GtkTextIter first, last;
+ 
+-		utf8_str = html_embedded_encode_string (e->name);
++		utf8_str = html_embedded_encode_string (e->name, codepage);
+ 		encoding = g_string_append (encoding, utf8_str);
+ 		g_free (utf8_str);
+ 
+@@ -80,7 +80,7 @@
+ 		gtk_text_buffer_get_bounds (HTML_TEXTAREA (e)->buffer, &first, &last);
+ 		gtk_text = gtk_text_buffer_get_text (HTML_TEXTAREA (e)->buffer, &first, &last, FALSE);
+ 
+-		encoded_str = html_embedded_encode_string (gtk_text);
++		encoded_str = html_embedded_encode_string (gtk_text, codepage);
+ 		encoding = g_string_append (encoding, encoded_str);
+ 
+ 		g_free (encoded_str);
+diff -u -r gtkhtml/gtkhtml/htmltextinput.c gtkhtml-my/gtkhtml/htmltextinput.c
+--- gtkhtml/gtkhtml/htmltextinput.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmltextinput.c	2008-09-14 07:40:44.000000000 +0000
+@@ -108,19 +108,19 @@
+ /* HTMLEmbedded methods.  */
+ 
+ static gchar *
+-encode (HTMLEmbedded *e)
++encode (HTMLEmbedded *e,const gchar* codepage)
+ {
+ 	GString *encoding = g_string_new ("");
+ 	gchar *ptr;
+ 
+ 	if(strlen (e->name)) {
+-		ptr = html_embedded_encode_string (e->name);
++		ptr = html_embedded_encode_string (e->name, codepage);
+ 		encoding = g_string_append (encoding, ptr);
+ 		g_free (ptr);
+ 
+ 		encoding = g_string_append_c (encoding, '=');
+ 
+-		ptr = html_embedded_encode_string (gtk_entry_get_text (GTK_ENTRY (e->widget)));
++		ptr = html_embedded_encode_string (gtk_entry_get_text (GTK_ENTRY (e->widget)), codepage);
+ 		encoding = g_string_append (encoding, ptr);
+ 		g_free (ptr);
+ 	}
+diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml-my/gtkhtml/htmltokenizer.c
+--- gtkhtml/gtkhtml/htmltokenizer.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmltokenizer.c	2008-09-14 20:43:27.000000000 +0000
+@@ -33,6 +33,7 @@
+ enum {
+ 	HTML_TOKENIZER_BEGIN_SIGNAL,
+ 	HTML_TOKENIZER_END_SIGNAL,
++	HTML_TOKENIZER_CHANGECONTENT_SIGNAL,
+ 	HTML_TOKENIZER_LAST_SIGNAL
+ };
+ 
+@@ -52,6 +53,7 @@
+ 	gint used;
+ 	gchar * data;
+ };
++
+ struct _HTMLTokenizerPrivate {
+ 
+ 	/* token buffers list */
+@@ -87,7 +89,6 @@
+ 	gboolean textarea; /* Are we in a <textarea> block? */
+ 	gint     pre; /* Are we in a <pre> block? */
+ 	gboolean select; /* Are we in a <select> block? */
+-	gboolean charEntity; /* Are we in an &... sequence? */
+ 	gboolean extension; /* Are we in an <!-- +GtkHTML: sequence? */
+ 	gboolean aTag; /* Are we in a <a/> tag*/
+ 
+@@ -117,11 +118,15 @@
+ 	GList *blocking; /* Blocking tokens */
+ 
+ 	const gchar *searchFor;
+-	gboolean utf8;
+-	gchar utf8_buffer[7];
+-	gint utf8_length;
++	
++	const gchar * content_type;
++	//convert
++	iconv_t iconv_cd;
++
+ };
+ 
++
++
+ static const gchar *commentStart = "<!--";
+ static const gchar *scriptEnd = "</script>";
+ static const gchar *styleEnd = "</style>";
+@@ -144,12 +149,16 @@
+ 
+ /* default implementations of tokenization functions */
+ static void     html_tokenizer_finalize             (GObject *);
++static void     html_tokenizer_real_change          (HTMLTokenizer *, gchar *content_type);
+ static void     html_tokenizer_real_begin           (HTMLTokenizer *, gchar *content_type);
+ static void     html_tokenizer_real_write           (HTMLTokenizer *, const gchar *str, size_t size);
+ static void     html_tokenizer_real_end             (HTMLTokenizer *);
++static gchar   *html_tokenizer_real_get_content_type(HTMLTokenizer *);
+ static gchar   *html_tokenizer_real_peek_token      (HTMLTokenizer *);
+ static gchar   *html_tokenizer_real_next_token      (HTMLTokenizer *);
+ static gboolean html_tokenizer_real_has_more_tokens (HTMLTokenizer *);
++static gchar   *getConvertedToken(HTMLTokenizer *t,const gchar* token);
++
+ 
+ static HTMLTokenizer *html_tokenizer_real_clone     (HTMLTokenizer *);
+ 
+@@ -160,8 +169,11 @@
+ 							      HTMLTokenType   tt);
+ static void               html_tokenizer_tokenize_one_char   (HTMLTokenizer  *t,
+ 							      const gchar  **src);
++static void				  add_unichar(HTMLTokenizer *t, gchar c);
++
++gboolean 				  needConvert(const gchar* token);
+ 
+-static void               add_unichar(HTMLTokenizer *t, gunichar wc);
++gchar*					  convertEntity(gchar * token);
+ 
+ static GObjectClass *parent_class = NULL;
+ 
+@@ -172,6 +184,16 @@
+ 
+ 	parent_class = g_type_class_ref (G_TYPE_OBJECT);
+ 
++	html_tokenizer_signals[HTML_TOKENIZER_CHANGECONTENT_SIGNAL] =
++		g_signal_new ("change",
++			      G_TYPE_FROM_CLASS (klass),
++			      G_SIGNAL_RUN_LAST,
++			      G_STRUCT_OFFSET (HTMLTokenizerClass, change),
++			      NULL, NULL,
++			      g_cclosure_marshal_VOID__POINTER,
++			      G_TYPE_NONE,
++			      1, G_TYPE_POINTER);
++
+ 	html_tokenizer_signals[HTML_TOKENIZER_BEGIN_SIGNAL] =
+ 		g_signal_new ("begin",
+ 			      G_TYPE_FROM_CLASS (klass),
+@@ -194,12 +216,14 @@
+ 
+ 	object_class->finalize = html_tokenizer_finalize;
+ 
++	klass->change     = html_tokenizer_real_change;
+ 	klass->begin      = html_tokenizer_real_begin;
+ 	klass->end        = html_tokenizer_real_end;
+ 
+ 	klass->write      = html_tokenizer_real_write;
+ 	klass->peek_token = html_tokenizer_real_peek_token;
+ 	klass->next_token = html_tokenizer_real_next_token;
++	klass->get_content_type = html_tokenizer_real_get_content_type;
+ 	klass->has_more   = html_tokenizer_real_has_more_tokens;
+ 	klass->clone      = html_tokenizer_real_clone;
+ }
+@@ -232,7 +256,6 @@
+ 	p->textarea = FALSE;
+ 	p->pre = 0;
+ 	p->select = FALSE;
+-	p->charEntity = FALSE;
+ 	p->extension = FALSE;
+ 	p->aTag = FALSE;
+ 
+@@ -256,9 +279,10 @@
+ html_tokenizer_finalize (GObject *obj)
+ {
+ 	HTMLTokenizer *t = HTML_TOKENIZER (obj);
+-
++	
+ 	html_tokenizer_reset (t);
+-
++	if(t->priv->iconv_cd)
++		iconv_close(t->priv->iconv_cd);
+ 	g_free (t->priv);
+ 	t->priv = NULL;
+ 
+@@ -369,10 +393,115 @@
+ 		/* finally get first token */
+ 		token = buffer->data;
+ 	}
++	
++	return getConvertedToken(t,token);
++}
+ 
++//Convert only chars when code >127
++gboolean
++needConvert(const gchar* token)
++{
++	int i=strlen(token);
++	for(;i>=0;i--)
++		if(token[i]&128)
++			return TRUE;
++	return FALSE;
++}
++
++//Convert entity values in already converted to right charset token
++gchar*
++convertEntity(gchar * token)
++{	
++	char* full_pos = token+strlen(token);	
++	char* write_pos = token+strcspn(token,"&");
++	while(write_pos < full_pos)
++	{
++		write_pos++;
++		size_t count_chars=strcspn(write_pos+1,";");
++		long long value=INVALID_CHARACTER_MARKER;			 
++		if(count_chars<14)
++		{
++			char save = *(write_pos+count_chars+1);
++			*(write_pos+count_chars+1)=0;
++			//&#1234567			
++			if (*write_pos == '#')
++			{
++				if(isdigit(*(write_pos+1)))
++				{
++					value=strtoull(write_pos+1,NULL,10);
++				}
++				//&#xdd
++				else if(*(write_pos+1) =='x')
++				{
++					value=strtoull(write_pos+2,NULL,16);
++				}
++			}
++			else 
++			{
++				value=html_entity_parse(write_pos,0);
++			}
++			*(write_pos+count_chars+1)=save;
++			if(count_chars>0)
++			{
++				memset(write_pos-1,' ',count_chars+3);
++				//firstchar is & I think this not need
++				write_pos --;
++				char *read_pos=write_pos+count_chars+3;
++				write_pos += g_unichar_to_utf8 (value,write_pos);
++				memcpy(write_pos,read_pos,full_pos - read_pos+1);
++				full_pos=write_pos+(full_pos - read_pos);
++			}
++		}	
++		write_pos=write_pos+strcspn(write_pos,"&");
++	}		
+ 	return token;
+ }
+ 
++gchar* 
++ConvertIconv(const iconv_t iconv_cd,const gchar * token)
++{
++	if(token == NULL)
++		return NULL;
++	size_t currlength = strlen(token);
++	if(iconv_cd!=NULL && needConvert(token))
++	{
++		gchar *current = token;
++		size_t currlength = strlen(token);
++		size_t newlength = currlength*7+1;
++		size_t oldlength = newlength;
++		gchar *newbuffer = g_new(gchar,newlength);
++		gchar *returnbuffer = newbuffer;
++		g_assert(returnbuffer);
++		iconv(iconv_cd,&current,&currlength,&newbuffer,&newlength);
++		returnbuffer[oldlength-newlength] = '\0';
++		returnbuffer = g_realloc(returnbuffer,oldlength-newlength);
++		g_assert(returnbuffer);
++		return returnbuffer;
++	}
++	gchar *newbuffer = g_new(gchar,currlength+1);
++	memcpy(newbuffer,token,currlength);
++	newbuffer[currlength]=0;
++	return newbuffer;
++}
++
++static gchar *
++getConvertedToken(HTMLTokenizer *t,const gchar* token)
++{
++	if(token != NULL)
++	{
++		struct _HTMLTokenizerPrivate *p = t->priv;
++		return convertEntity(ConvertIconv(p->iconv_cd,token));
++	}
++	return NULL;
++}
++
++static gchar *
++html_tokenizer_real_get_content_type(HTMLTokenizer *t)
++{
++	struct _HTMLTokenizerPrivate *p = t->priv;
++	return p->content_type;
++}
++
+ static gchar *
+ html_tokenizer_real_next_token (HTMLTokenizer *t)
+ {
+@@ -411,8 +540,8 @@
+ 
+ 	p->tokens_num--;
+ 	g_assert (p->tokens_num >= 0);
+-
+-	return token;
++	
++	return getConvertedToken(t,token);
+ }
+ 
+ static gboolean
+@@ -463,9 +592,75 @@
+ static gint
+ charset_is_utf8 (gchar *content_type)
+ {
+-	return content_type && strstr (content_type, "charset=utf-8") != NULL;
++	return content_type && strstr (content_type, "=utf-8") != NULL;
++}
++
++static gint
++is_text (gchar *content_type)
++{
++	return content_type && strstr (content_type, "text/") != NULL;
++}
++
++static gchar*
++getEncoding(const gchar * content_type)
++{
++	if(content_type)
++	{
++		gchar * charset =  strstr(content_type,"charset=");
++		if(charset !=NULL)
++			return charset + strlen("charset=");
++	}
++	return NULL;
++}
++
++iconv_t
++genIconvFrom(const gchar * content_type)
++{
++	if(content_type)
++		if(!charset_is_utf8(content_type))
++		{
++			gchar * encoding = getEncoding(content_type);
++			if(encoding)
++				return iconv_open("utf-8", encoding);
++		}
++	return NULL;
++}
++
++iconv_t
++genIconvTo(const gchar * content_type)
++{
++	if(content_type)
++		if(!charset_is_utf8(content_type))
++		{
++			gchar * encoding = getEncoding(content_type);
++			if(encoding)
++				return iconv_open(encoding, "utf-8");
++		}
++	return NULL;
++}
++
++static void
++html_tokenizer_real_change (HTMLTokenizer *t, gchar *content_type)
++{	
++	if(!is_text(content_type))
++		return;
++			
++	struct _HTMLTokenizerPrivate *p = t->priv;
++	p->content_type = g_strdup(content_type);
++	if(p->iconv_cd)
++		iconv_close(p->iconv_cd);
++		
++	p->iconv_cd = genIconvFrom(p->content_type);
++	
++#if 0
++	if (charset_is_utf8(p->content_type))
++		g_warning ("Trying UTF-8");
++	else
++		g_warning ("Trying %s",p->content_type);
++#endif
+ }
+ 
++
+ static void
+ html_tokenizer_real_begin (HTMLTokenizer *t, gchar *content_type)
+ {
+@@ -490,17 +685,8 @@
+ 	p->searchCount = 0;
+ 	p->searchGtkHTMLCount = 0;
+ 	p->title = FALSE;
+-	p->charEntity = FALSE;
+-
+-	p->utf8 = charset_is_utf8 (content_type);
+-	p->utf8_length = 0;
+-#if 0
+-	if (p->utf8)
+-		g_warning ("Trying UTF-8");
+-	else
+-		g_warning ("Trying ISO-8859-1");
+-#endif
+ 
++	html_tokenizer_real_change(t, content_type);
+ }
+ 
+ static void
+@@ -561,6 +747,24 @@
+ 	}
+ }
+ 
++static void add_byte(HTMLTokenizer *t,const gchar **c)
++{
++	add_unichar(t,**c);
++	(*c)++;
++}
++
++static void
++add_unichar(HTMLTokenizer *t, gchar c){
++	struct _HTMLTokenizerPrivate *p = t->priv;
++	if(c!='\0')
++	{
++		*(p->dest) = c;
++		p->dest++;
++		*(p->dest) = 0;
++	}
++	c++;
++}
++
+ static void
+ html_tokenizer_append_token_buffer (HTMLTokenizer *t, gint min_size)
+ {
+@@ -779,196 +983,6 @@
+ 	}
+ }
+ 
+-static gunichar win1252_to_unicode [32] = {
+-	0x20ac,
+-	0x81,
+-	0x201a,
+-	0x0192,
+-	0x201e,
+-	0x2026,
+-	0x2020,
+-	0x2021,
+-	0x02c6,
+-	0x2030,
+-	0x0160,
+-	0x2039,
+-	0x0152,
+-	0x8d,
+-	0x017d,
+-	0x8f,
+-	0x90,
+-	0x2018,
+-	0x2019,
+-	0x201c,
+-	0x201d,
+-	0x2022,
+-	0x2013,
+-	0x2014,
+-	0x02dc,
+-	0x2122,
+-	0x0161,
+-	0x203a,
+-	0x0153,
+-	0x9d,
+-	0x017e,
+-	0x0178
+-};
+-
+-static void
+-add_unichar (HTMLTokenizer *t, gunichar wc)
+-{
+-	struct _HTMLTokenizerPrivate *p = t->priv;
+-
+-	p->utf8_length = 0;
+-
+-	/*
+-	  chars in range 128 - 159 are control characters in unicode,
+-	  but most browsers treat them as windows 1252
+-	  encoded characters and translate them to unicode
+-	  it's broken, but we do the same here
+-	*/
+-	if (wc > 127 && wc < 160)
+-		wc = win1252_to_unicode [wc - 128];
+-
+-	if (wc != '\0') {
+-		p->dest += g_unichar_to_utf8 (wc, p->dest);
+-		*(p->dest) = 0;
+-	}
+-}
+-
+-static void
+-add_byte (HTMLTokenizer *t, const gchar **src)
+-{
+-	gunichar wc;
+-	struct _HTMLTokenizerPrivate *p = t->priv;
+-
+-	if (p->utf8) {
+-		p->utf8_buffer[p->utf8_length] = **src;
+-		p->utf8_length++;
+-
+-		wc = g_utf8_get_char_validated ((const gchar *)p->utf8_buffer, p->utf8_length);
+-		if (wc == -1 || p->utf8_length >= (sizeof(p->utf8_buffer)/sizeof(p->utf8_buffer[0]))) {
+-			add_unichar (t, INVALID_CHARACTER_MARKER);
+-			(*src)++;
+-			return;
+-		} else if (wc == -2) {
+-			/* incomplete character check again */
+-			(*src)++;
+-			return;
+-		}
+-	} else {
+-		wc = (guchar)**src;
+-	}
+-
+-	add_unichar (t, wc);
+-	(*src)++;
+-}
+-
+-static void
+-flush_entity (HTMLTokenizer *t)
+-{
+-	struct _HTMLTokenizerPrivate *p = t->priv;
+-	/* ignore the TAG_ESCAPE when flushing */
+-	const char *str = p->searchBuffer + 1;
+-
+-	 while (p->searchCount--) {
+-		add_byte (t, &str);
+-	}
+-}
+-
+-static gboolean
+-add_unichar_validated (HTMLTokenizer *t, gunichar uc)
+-{
+-	if (g_unichar_validate (uc)) {
+-		add_unichar (t, uc);
+-		return TRUE;
+-	}
+-
+-	g_warning ("invalid character value: x%xd", uc);
+-	return FALSE;
+-}
+-
+-static void
+-in_entity (HTMLTokenizer *t, const gchar **src)
+-{
+-	struct _HTMLTokenizerPrivate *p = t->priv;
+-	gunichar entityValue = 0;
+-
+-	/* See http://www.mozilla.org/newlayout/testcases/layout/entities.html for a complete entity list,
+-	   ftp://ftp.unicode.org/Public/MAPPINGS/ISO8859/8859-1.TXT
+-	   (or 'man iso_8859_1') for the character encodings. */
+-
+-	p->searchBuffer [p->searchCount + 1] = **src;
+-	p->searchBuffer [p->searchCount + 2] = '\0';
+-
+-	/* Check for &#0000 sequence */
+-	if (p->searchBuffer[2] == '#') {
+-		if ((p->searchCount > 1) &&
+-		    (!isdigit (**src)) &&
+-		    (p->searchBuffer[3] != 'x')) {
+-			/* &#123 */
+-			p->searchBuffer [p->searchCount + 1] = '\0';
+-			entityValue = strtoul (&(p->searchBuffer [3]),
+-					       NULL, 10);
+-			p->charEntity = FALSE;
+-		}
+-		if ((p->searchCount > 1) &&
+-		    (!isalnum (**src)) &&
+-		    (p->searchBuffer[3] == 'x')) {
+-			/* &x12AB */
+-			p->searchBuffer [p->searchCount + 1] = '\0';
+-
+-			entityValue = strtoul (&(p->searchBuffer [4]),
+-					       NULL, 16);
+-			p->charEntity = FALSE;
+-		}
+-	}
+-	else {
+-		/* Check for &abc12 sequence */
+-		if (!isalnum (**src)) {
+-			p->charEntity = FALSE;
+-			if ((p->searchBuffer [p->searchCount + 1] == ';') ||
+-			    (!p->tag)) {
+-				char *ename = p->searchBuffer + 2;
+-
+-				p->searchBuffer [p->searchCount + 1] = '\0'; /* FIXME sucks */
+-				entityValue = html_entity_parse (ename, 0);
+-			}
+-		}
+-
+-	}
+-
+-	if (p->searchCount > 13) {
+-		/* Ignore this sequence since it's too long */
+-		p->charEntity = FALSE;
+-		flush_entity (t);
+-	}
+-	else if (p->charEntity) {
+-				/* Keep searching for end of character entity */
+-		p->searchCount++;
+-		(*src)++;
+-	}
+-	else {
+-		/*
+-		 * my reading of http://www.w3.org/TR/html4/intro/sgmltut.html#h-3.2.2 makes
+-		 * seem correct to always collapse entity references, even in element names
+-		 * and attributes.
+-		 */
+-		if (entityValue) {
+-			if (entityValue != TAG_ESCAPE)
+-				/* make sure the entity value is a valid character value */
+-				if (!add_unichar_validated (t, entityValue))
+-					add_unichar (t, INVALID_CHARACTER_MARKER);
+-
+-			if (**src == ';')
+-				(*src)++;
+-		} else {
+-			/* Ignore the sequence, just add it as plaintext */
+-			flush_entity (t);
+-		}
+-	}
+-}
+-
+ static void
+ in_tag (HTMLTokenizer *t, const gchar **src)
+ {
+@@ -1013,24 +1027,6 @@
+ }
+ 
+ static void
+-start_entity (HTMLTokenizer *t, const gchar **src)
+-{
+-	struct _HTMLTokenizerPrivate *p = t->priv;
+-
+-	(*src)++;
+-
+-	p->discard = NoneDiscard;
+-
+-	if (p->pending)
+-		html_tokenizer_add_pending (t);
+-
+-	p->charEntity      = TRUE;
+-	p->searchBuffer[0] = TAG_ESCAPE;
+-	p->searchBuffer[1] = '&';
+-	p->searchCount     = 1;
+-}
+-
+-static void
+ start_tag (HTMLTokenizer *t, const gchar **src)
+ {
+ 	(*src)++;
+@@ -1309,12 +1305,8 @@
+ 		in_extension (t, src);
+ 	else if (p->script || p->style)
+ 		in_script_or_style (t, src);
+-	else if (p->charEntity)
+-		in_entity (t, src);
+ 	else if (p->startTag)
+ 		in_tag (t, src);
+-	else if (**src == '&' && !p->aTag)
+-		start_entity (t, src);
+ 	else if (**src == '<' && !p->tag)
+ 		start_tag (t, src);
+ 	else if (**src == '>' && p->tag && !p->tquote)
+@@ -1335,7 +1327,7 @@
+ html_tokenizer_real_write (HTMLTokenizer *t, const gchar *string, size_t size)
+ {
+ 	const gchar *src = string;
+-
++	
+ 	while ((src - string) < size)
+ 		html_tokenizer_tokenize_one_char (t, &src);
+ }
+@@ -1383,12 +1375,22 @@
+ void
+ html_tokenizer_begin (HTMLTokenizer *t, gchar *content_type)
+ {
++	
+ 	g_return_if_fail (t && HTML_IS_TOKENIZER (t));
+ 
+ 	g_signal_emit (t, html_tokenizer_signals [HTML_TOKENIZER_BEGIN_SIGNAL], 0, content_type);
+ }
+ 
+ void
++html_tokenizer_change_content_type (HTMLTokenizer *t,const gchar *content_type)
++{	
++	g_return_if_fail (t && HTML_IS_TOKENIZER (t));
++
++	g_signal_emit (t, html_tokenizer_signals [HTML_TOKENIZER_CHANGECONTENT_SIGNAL], 0, content_type);
++}
++
++
++void
+ html_tokenizer_end (HTMLTokenizer *t)
+ {
+ 	g_return_if_fail (t && HTML_IS_TOKENIZER (t));
+@@ -1428,6 +1430,23 @@
+ }
+ 
+ gchar *
++html_tokenizer_get_content_type(HTMLTokenizer *t)
++{
++	HTMLTokenizerClass *klass;
++
++	g_return_val_if_fail (t && HTML_IS_TOKENIZER (t), NULL);
++
++	klass = HTML_TOKENIZER_CLASS (G_OBJECT_GET_CLASS (t));
++		
++	if(klass->get_content_type)
++		return  klass->get_content_type(t);
++
++	g_warning ("No get_content_type method defined.");
++	return NULL;
++
++}
++
++gchar *
+ html_tokenizer_next_token (HTMLTokenizer *t)
+ {
+ 	HTMLTokenizerClass *klass;
+@@ -1438,7 +1457,7 @@
+ 
+ 	if (klass->next_token)
+ 		return klass->next_token (t);
+-
++	
+ 	g_warning ("No next_token method defined.");
+ 	return NULL;
+ }
+diff -u -r gtkhtml/gtkhtml/htmltokenizer.h gtkhtml-my/gtkhtml/htmltokenizer.h
+--- gtkhtml/gtkhtml/htmltokenizer.h	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/htmltokenizer.h	2008-09-14 20:39:40.000000000 +0000
+@@ -27,6 +27,7 @@
+ 
+ #include <glib-object.h>
+ #include "htmltypes.h"
++#include <iconv.h>
+ 
+ #define TAG_ESCAPE 13
+ #define TAB_SIZE 8
+@@ -49,12 +50,14 @@
+ 
+ 	/* signals */
+ 	void     (*begin)           (HTMLTokenizer *, gchar *content_type);
++	void     (*change)          (HTMLTokenizer *, gchar *content_type);
+ 	void     (*end)             (HTMLTokenizer *);
+ 
+ 	/* virtual functions */
+ 	void           (*write)      (HTMLTokenizer *, const gchar *string, size_t size);
+ 	gchar         *(*peek_token) (HTMLTokenizer *);
+ 	gchar         *(*next_token) (HTMLTokenizer *);
++	gchar         *(*get_content_type) (HTMLTokenizer *);
+ 	gboolean       (*has_more)   (HTMLTokenizer *);
+ 
+ 	HTMLTokenizer *(*clone)      (HTMLTokenizer *);
+@@ -67,6 +70,12 @@
+ 
+ void           html_tokenizer_begin           (HTMLTokenizer *t,
+ 					       gchar *content_type);
++					       
++void           html_tokenizer_change_content_type           (HTMLTokenizer *t,
++					       const gchar *content_type);
++					       
++gchar * 		html_tokenizer_get_content_type(HTMLTokenizer *t);
++				
+ void           html_tokenizer_write           (HTMLTokenizer *t,
+ 					       const gchar *string,
+ 					       size_t size);
+@@ -77,4 +86,7 @@
+ 
+ HTMLTokenizer *html_tokenizer_clone           (HTMLTokenizer *t);
+ 
++iconv_t 	genIconvFrom(const gchar * content_type);
++iconv_t 	genIconvTo(const gchar * content_type);
++gchar* 	ConvertIconv(const iconv_t iconv_cd,const gchar * token);
+ #endif /* _HTMLTOKENIZER_H_ */
+diff -u -r gtkhtml/gtkhtml/testgtkhtml.c gtkhtml-my/gtkhtml/testgtkhtml.c
+--- gtkhtml/gtkhtml/testgtkhtml.c	2008-09-13 18:23:54.000000000 +0000
++++ gtkhtml-my/gtkhtml/testgtkhtml.c	2008-09-13 18:25:42.000000000 +0000
+@@ -669,7 +669,9 @@
+ 		gtk_html_end (html, handle, GTK_HTML_STREAM_ERROR);
+ 		return;
+ 	}
+-
++	gchar *ContentType = soup_message_headers_get(msg->response_headers,"Content-type");
++	if(ContentType!=NULL)
++		gtk_html_set_default_content_type(html,ContentType);
+ 	gtk_html_write (html, handle, msg->response_body->data,
+ 			msg->response_body->length);
+ 	gtk_html_end (html, handle, GTK_HTML_STREAM_OK);
