@@ -1,7 +1,7 @@
 diff -u -r gtkhtml/gtkhtml/gtkhtml.c gtkhtml/gtkhtml/gtkhtml.c
---- gtkhtml/gtkhtml/gtkhtml.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/gtkhtml.c	2008-09-13 18:25:42.000000000 +0000
-@@ -3459,7 +3459,7 @@
+--- gtkhtml/gtkhtml/gtkhtml.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/gtkhtml.c	2008-09-16 18:42:22.000000000 +0300
+@@ -3474,7 +3474,7 @@
  	html->allow_selection = allow;
  }
  
@@ -10,7 +10,7 @@ diff -u -r gtkhtml/gtkhtml/gtkhtml.c gtkhtml/gtkhtml/gtkhtml.c
  /**
   * gtk_html_begin_full:
   * @html: the GtkHTML widget to operate on.
-@@ -3549,7 +3549,7 @@
+@@ -3564,7 +3564,7 @@
  {
  	g_return_val_if_fail (! gtk_html_get_editable (html), NULL);
  
@@ -19,7 +19,7 @@ diff -u -r gtkhtml/gtkhtml/gtkhtml.c gtkhtml/gtkhtml/gtkhtml.c
  }
  
  /**
-@@ -4482,7 +4482,8 @@
+@@ -4497,7 +4497,8 @@
  gtk_html_set_default_content_type (GtkHTML *html, gchar *content_type)
  {
  	g_free (html->priv->content_type);
@@ -29,9 +29,10 @@ diff -u -r gtkhtml/gtkhtml/gtkhtml.c gtkhtml/gtkhtml/gtkhtml.c
  	if (content_type) {
  		html->priv->content_type = g_ascii_strdown (content_type, -1);
  	} else
+Only in gtkhtml/gtkhtml: gtkhtml.c.orig
 diff -u -r gtkhtml/gtkhtml/htmlbutton.c gtkhtml/gtkhtml/htmlbutton.c
---- gtkhtml/gtkhtml/htmlbutton.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmlbutton.c	2008-09-14 08:02:19.000000000 +0000
+--- gtkhtml/gtkhtml/htmlbutton.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmlbutton.c	2008-09-16 18:42:22.000000000 +0300
 @@ -64,19 +64,19 @@
  
  
@@ -56,8 +57,8 @@ diff -u -r gtkhtml/gtkhtml/htmlbutton.c gtkhtml/gtkhtml/htmlbutton.c
  		g_free (ptr);
  	}
 diff -u -r gtkhtml/gtkhtml/htmlcheckbox.c gtkhtml/gtkhtml/htmlcheckbox.c
---- gtkhtml/gtkhtml/htmlcheckbox.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmlcheckbox.c	2008-09-14 07:44:49.000000000 +0000
+--- gtkhtml/gtkhtml/htmlcheckbox.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmlcheckbox.c	2008-09-16 18:42:22.000000000 +0300
 @@ -38,20 +38,19 @@
  }
  
@@ -83,8 +84,8 @@ diff -u -r gtkhtml/gtkhtml/htmlcheckbox.c gtkhtml/gtkhtml/htmlcheckbox.c
  		g_free (ptr);
  	}
 diff -u -r gtkhtml/gtkhtml/htmlembedded.c gtkhtml/gtkhtml/htmlembedded.c
---- gtkhtml/gtkhtml/htmlembedded.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmlembedded.c	2008-09-14 20:57:54.000000000 +0000
+--- gtkhtml/gtkhtml/htmlembedded.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmlembedded.c	2008-09-16 18:42:22.000000000 +0300
 @@ -33,6 +33,8 @@
  #include "htmliframe.h"
  #include "htmlpainter.h"
@@ -148,8 +149,8 @@ diff -u -r gtkhtml/gtkhtml/htmlembedded.c gtkhtml/gtkhtml/htmlembedded.c
  
  void
 diff -u -r gtkhtml/gtkhtml/htmlembedded.h gtkhtml/gtkhtml/htmlembedded.h
---- gtkhtml/gtkhtml/htmlembedded.h	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmlembedded.h	2008-09-14 08:05:12.000000000 +0000
+--- gtkhtml/gtkhtml/htmlembedded.h	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmlembedded.h	2008-09-16 18:42:22.000000000 +0300
 @@ -45,7 +45,7 @@
  
  
@@ -173,8 +174,8 @@ diff -u -r gtkhtml/gtkhtml/htmlembedded.h gtkhtml/gtkhtml/htmlembedded.h
  					    GtkHTMLEmbedded   *eb,
  					    HTMLEngine        *engine);
 diff -u -r gtkhtml/gtkhtml/htmlengine.c gtkhtml/gtkhtml/htmlengine.c
---- gtkhtml/gtkhtml/htmlengine.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmlengine.c	2008-09-14 19:24:17.000000000 +0000
+--- gtkhtml/gtkhtml/htmlengine.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmlengine.c	2008-09-16 18:42:22.000000000 +0300
 @@ -2766,11 +2766,24 @@
  	html_element_free (element);
  }
@@ -230,8 +231,8 @@ diff -u -r gtkhtml/gtkhtml/htmlengine.c gtkhtml/gtkhtml/htmlengine.c
  				refresh_delay = atoi(content);
  
 diff -u -r gtkhtml/gtkhtml/htmlengine.h gtkhtml/gtkhtml/htmlengine.h
---- gtkhtml/gtkhtml/htmlengine.h	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmlengine.h	2008-09-14 08:40:32.000000000 +0000
+--- gtkhtml/gtkhtml/htmlengine.h	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmlengine.h	2008-09-16 18:42:22.000000000 +0300
 @@ -315,6 +315,9 @@
  void           html_engine_stop_parser      (HTMLEngine  *e);
  void           html_engine_stop             (HTMLEngine  *e);
@@ -243,8 +244,8 @@ diff -u -r gtkhtml/gtkhtml/htmlengine.h gtkhtml/gtkhtml/htmlengine.h
  /* Rendering control.  */
  gint  html_engine_calc_min_width       (HTMLEngine *e);
 diff -u -r gtkhtml/gtkhtml/htmlform.c gtkhtml/gtkhtml/htmlform.c
---- gtkhtml/gtkhtml/htmlform.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmlform.c	2008-09-14 08:39:14.000000000 +0000
+--- gtkhtml/gtkhtml/htmlform.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmlform.c	2008-09-16 18:42:22.000000000 +0300
 @@ -125,10 +125,11 @@
  	gint first = TRUE;
  	GList *i = form->elements;
@@ -261,8 +262,8 @@ diff -u -r gtkhtml/gtkhtml/htmlform.c gtkhtml/gtkhtml/htmlform.c
  			if(!first)
  				encoding = g_string_append_c (encoding, '&');
 diff -u -r gtkhtml/gtkhtml/htmlhidden.c gtkhtml/gtkhtml/htmlhidden.c
---- gtkhtml/gtkhtml/htmlhidden.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmlhidden.c	2008-09-14 07:45:38.000000000 +0000
+--- gtkhtml/gtkhtml/htmlhidden.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmlhidden.c	2008-09-16 18:42:22.000000000 +0300
 @@ -28,19 +28,19 @@
  
  
@@ -287,8 +288,8 @@ diff -u -r gtkhtml/gtkhtml/htmlhidden.c gtkhtml/gtkhtml/htmlhidden.c
  		g_free (ptr);
  	}
 diff -u -r gtkhtml/gtkhtml/htmlimageinput.c gtkhtml/gtkhtml/htmlimageinput.c
---- gtkhtml/gtkhtml/htmlimageinput.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmlimageinput.c	2008-09-14 07:45:49.000000000 +0000
+--- gtkhtml/gtkhtml/htmlimageinput.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmlimageinput.c	2008-09-16 18:42:22.000000000 +0300
 @@ -107,13 +107,13 @@
  
  
@@ -315,8 +316,8 @@ diff -u -r gtkhtml/gtkhtml/htmlimageinput.c gtkhtml/gtkhtml/htmlimageinput.c
  		g_free (ptr);
  
 diff -u -r gtkhtml/gtkhtml/htmlradio.c gtkhtml/gtkhtml/htmlradio.c
---- gtkhtml/gtkhtml/htmlradio.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmlradio.c	2008-09-14 07:45:59.000000000 +0000
+--- gtkhtml/gtkhtml/htmlradio.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmlradio.c	2008-09-16 18:42:22.000000000 +0300
 @@ -49,20 +49,20 @@
  }
  
@@ -342,8 +343,8 @@ diff -u -r gtkhtml/gtkhtml/htmlradio.c gtkhtml/gtkhtml/htmlradio.c
  		g_free (ptr);
  	}
 diff -u -r gtkhtml/gtkhtml/htmlselect.c gtkhtml/gtkhtml/htmlselect.c
---- gtkhtml/gtkhtml/htmlselect.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmlselect.c	2008-09-14 08:58:13.000000000 +0000
+--- gtkhtml/gtkhtml/htmlselect.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmlselect.c	2008-09-16 18:42:22.000000000 +0300
 @@ -102,7 +102,8 @@
  add_selected (GtkTreeModel *model,
                GtkTreePath *path,
@@ -389,8 +390,8 @@ diff -u -r gtkhtml/gtkhtml/htmlselect.c gtkhtml/gtkhtml/htmlselect.c
  	}
  
 diff -u -r gtkhtml/gtkhtml/htmltextarea.c gtkhtml/gtkhtml/htmltextarea.c
---- gtkhtml/gtkhtml/htmltextarea.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmltextarea.c	2008-09-14 07:46:23.000000000 +0000
+--- gtkhtml/gtkhtml/htmltextarea.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmltextarea.c	2008-09-16 18:42:22.000000000 +0300
 @@ -63,7 +63,7 @@
  }
  
@@ -419,8 +420,8 @@ diff -u -r gtkhtml/gtkhtml/htmltextarea.c gtkhtml/gtkhtml/htmltextarea.c
  
  		g_free (encoded_str);
 diff -u -r gtkhtml/gtkhtml/htmltextinput.c gtkhtml/gtkhtml/htmltextinput.c
---- gtkhtml/gtkhtml/htmltextinput.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmltextinput.c	2008-09-14 07:40:44.000000000 +0000
+--- gtkhtml/gtkhtml/htmltextinput.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmltextinput.c	2008-09-16 18:42:22.000000000 +0300
 @@ -108,19 +108,19 @@
  /* HTMLEmbedded methods.  */
  
@@ -445,8 +446,8 @@ diff -u -r gtkhtml/gtkhtml/htmltextinput.c gtkhtml/gtkhtml/htmltextinput.c
  		g_free (ptr);
  	}
 diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
---- gtkhtml/gtkhtml/htmltokenizer.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmltokenizer.c	2008-09-14 20:43:27.000000000 +0000
+--- gtkhtml/gtkhtml/htmltokenizer.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmltokenizer.c	2008-09-18 18:19:59.000000000 +0300
 @@ -33,6 +33,7 @@
  enum {
  	HTML_TOKENIZER_BEGIN_SIGNAL,
@@ -573,14 +574,14 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  	g_free (t->priv);
  	t->priv = NULL;
  
-@@ -369,10 +393,115 @@
+@@ -369,10 +393,127 @@
  		/* finally get first token */
  		token = buffer->data;
  	}
 +	
 +	return getConvertedToken(t,token);
 +}
- 
++
 +//Convert only chars when code >127
 +gboolean
 +needConvert(const gchar* token)
@@ -591,7 +592,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
 +			return TRUE;
 +	return FALSE;
 +}
-+
+ 
 +//Convert entity values in already converted to right charset token
 +gchar*
 +convertEntity(gchar * token)
@@ -656,7 +657,19 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
 +		gchar *newbuffer = g_new(gchar,newlength);
 +		gchar *returnbuffer = newbuffer;
 +		g_assert(returnbuffer);
-+		iconv(iconv_cd,&current,&currlength,&newbuffer,&newlength);
++		while(currlength>0)
++		{
++			iconv(iconv_cd,&current,&currlength,&newbuffer,&newlength);
++			if(currlength>0)
++			{
++				g_print("IconvError=%s",current);
++			   *newbuffer = INVALID_CHARACTER_MARKER;
++			    newbuffer ++;
++			    current++;
++			    currlength --;
++			    newlength--;
++			}
++		}
 +		returnbuffer[oldlength-newlength] = '\0';
 +		returnbuffer = g_realloc(returnbuffer,oldlength-newlength);
 +		g_assert(returnbuffer);
@@ -689,7 +702,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  static gchar *
  html_tokenizer_real_next_token (HTMLTokenizer *t)
  {
-@@ -411,8 +540,8 @@
+@@ -411,8 +552,8 @@
  
  	p->tokens_num--;
  	g_assert (p->tokens_num >= 0);
@@ -700,14 +713,14 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  }
  
  static gboolean
-@@ -463,9 +592,75 @@
+@@ -463,9 +604,75 @@
  static gint
  charset_is_utf8 (gchar *content_type)
  {
 -	return content_type && strstr (content_type, "charset=utf-8") != NULL;
 +	return content_type && strstr (content_type, "=utf-8") != NULL;
-+}
-+
+ }
+ 
 +static gint
 +is_text (gchar *content_type)
 +{
@@ -771,13 +784,13 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
 +	else
 +		g_warning ("Trying %s",p->content_type);
 +#endif
- }
- 
++}
++
 +
  static void
  html_tokenizer_real_begin (HTMLTokenizer *t, gchar *content_type)
  {
-@@ -490,17 +685,8 @@
+@@ -490,17 +697,8 @@
  	p->searchCount = 0;
  	p->searchGtkHTMLCount = 0;
  	p->title = FALSE;
@@ -796,7 +809,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  }
  
  static void
-@@ -561,6 +747,24 @@
+@@ -561,6 +759,24 @@
  	}
  }
  
@@ -821,7 +834,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  static void
  html_tokenizer_append_token_buffer (HTMLTokenizer *t, gint min_size)
  {
-@@ -779,196 +983,6 @@
+@@ -779,196 +995,6 @@
  	}
  }
  
@@ -1018,7 +1031,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  static void
  in_tag (HTMLTokenizer *t, const gchar **src)
  {
-@@ -1013,24 +1027,6 @@
+@@ -1013,24 +1039,6 @@
  }
  
  static void
@@ -1043,7 +1056,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  start_tag (HTMLTokenizer *t, const gchar **src)
  {
  	(*src)++;
-@@ -1309,12 +1305,8 @@
+@@ -1309,12 +1317,8 @@
  		in_extension (t, src);
  	else if (p->script || p->style)
  		in_script_or_style (t, src);
@@ -1056,7 +1069,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  	else if (**src == '<' && !p->tag)
  		start_tag (t, src);
  	else if (**src == '>' && p->tag && !p->tquote)
-@@ -1335,7 +1327,7 @@
+@@ -1335,7 +1339,7 @@
  html_tokenizer_real_write (HTMLTokenizer *t, const gchar *string, size_t size)
  {
  	const gchar *src = string;
@@ -1065,7 +1078,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  	while ((src - string) < size)
  		html_tokenizer_tokenize_one_char (t, &src);
  }
-@@ -1383,12 +1375,22 @@
+@@ -1383,12 +1387,22 @@
  void
  html_tokenizer_begin (HTMLTokenizer *t, gchar *content_type)
  {
@@ -1088,7 +1101,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  html_tokenizer_end (HTMLTokenizer *t)
  {
  	g_return_if_fail (t && HTML_IS_TOKENIZER (t));
-@@ -1428,6 +1430,23 @@
+@@ -1428,6 +1442,23 @@
  }
  
  gchar *
@@ -1112,7 +1125,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  html_tokenizer_next_token (HTMLTokenizer *t)
  {
  	HTMLTokenizerClass *klass;
-@@ -1438,7 +1457,7 @@
+@@ -1438,7 +1469,7 @@
  
  	if (klass->next_token)
  		return klass->next_token (t);
@@ -1122,8 +1135,8 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  	return NULL;
  }
 diff -u -r gtkhtml/gtkhtml/htmltokenizer.h gtkhtml/gtkhtml/htmltokenizer.h
---- gtkhtml/gtkhtml/htmltokenizer.h	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/htmltokenizer.h	2008-09-14 20:39:40.000000000 +0000
+--- gtkhtml/gtkhtml/htmltokenizer.h	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/htmltokenizer.h	2008-09-16 18:42:22.000000000 +0300
 @@ -27,6 +27,7 @@
  
  #include <glib-object.h>
@@ -1169,8 +1182,8 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.h gtkhtml/gtkhtml/htmltokenizer.h
 +gchar* 	ConvertIconv(const iconv_t iconv_cd,const gchar * token);
  #endif /* _HTMLTOKENIZER_H_ */
 diff -u -r gtkhtml/gtkhtml/testgtkhtml.c gtkhtml/gtkhtml/testgtkhtml.c
---- gtkhtml/gtkhtml/testgtkhtml.c	2008-09-13 18:23:54.000000000 +0000
-+++ gtkhtml/gtkhtml/testgtkhtml.c	2008-09-13 18:25:42.000000000 +0000
+--- gtkhtml/gtkhtml/testgtkhtml.c	2008-09-16 18:38:59.000000000 +0300
++++ gtkhtml/gtkhtml/testgtkhtml.c	2008-09-16 18:42:22.000000000 +0300
 @@ -669,7 +669,9 @@
  		gtk_html_end (html, handle, GTK_HTML_STREAM_ERROR);
  		return;
