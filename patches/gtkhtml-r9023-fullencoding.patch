@@ -1,6 +1,15 @@
-diff -u -r gtkhtml/gtkhtml/gtkhtml.c gtkhtml/gtkhtml/gtkhtml.c
---- gtkhtml/gtkhtml/gtkhtml.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/gtkhtml.c	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/gtkhtml.c gtkhtml-my/gtkhtml/gtkhtml.c
+--- gtkhtml/gtkhtml/gtkhtml.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/gtkhtml.c	2008-10-02 16:31:46.000000000 +0300
+@@ -3474,7 +3474,7 @@
+ 	html->allow_selection = allow;
+ }
+ 
+-
++
+ /**
+  * gtk_html_begin_full:
+  * @html: the GtkHTML widget to operate on.
 @@ -3564,7 +3564,7 @@
  {
  	g_return_val_if_fail (! gtk_html_get_editable (html), NULL);
@@ -15,13 +24,14 @@ diff -u -r gtkhtml/gtkhtml/gtkhtml.c gtkhtml/gtkhtml/gtkhtml.c
  {
  	g_free (html->priv->content_type);
 -
++    
 +    html_engine_set_content_type(html->engine,content_type);
  	if (content_type) {
  		html->priv->content_type = g_ascii_strdown (content_type, -1);
  	} else
-diff -u -r gtkhtml/gtkhtml/htmlbutton.c gtkhtml/gtkhtml/htmlbutton.c
---- gtkhtml/gtkhtml/htmlbutton.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmlbutton.c	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmlbutton.c gtkhtml-my/gtkhtml/htmlbutton.c
+--- gtkhtml/gtkhtml/htmlbutton.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmlbutton.c	2008-10-02 16:31:46.000000000 +0300
 @@ -64,19 +64,19 @@
  
  
@@ -45,9 +55,9 @@ diff -u -r gtkhtml/gtkhtml/htmlbutton.c gtkhtml/gtkhtml/htmlbutton.c
  		encoding = g_string_append (encoding, ptr);
  		g_free (ptr);
  	}
-diff -u -r gtkhtml/gtkhtml/htmlcheckbox.c gtkhtml/gtkhtml/htmlcheckbox.c
---- gtkhtml/gtkhtml/htmlcheckbox.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmlcheckbox.c	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmlcheckbox.c gtkhtml-my/gtkhtml/htmlcheckbox.c
+--- gtkhtml/gtkhtml/htmlcheckbox.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmlcheckbox.c	2008-10-02 16:31:46.000000000 +0300
 @@ -38,20 +38,19 @@
  }
  
@@ -72,9 +82,9 @@ diff -u -r gtkhtml/gtkhtml/htmlcheckbox.c gtkhtml/gtkhtml/htmlcheckbox.c
  		encoding = g_string_append (encoding, ptr);
  		g_free (ptr);
  	}
-diff -u -r gtkhtml/gtkhtml/htmlembedded.c gtkhtml/gtkhtml/htmlembedded.c
---- gtkhtml/gtkhtml/htmlembedded.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmlembedded.c	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmlembedded.c gtkhtml-my/gtkhtml/htmlembedded.c
+--- gtkhtml/gtkhtml/htmlembedded.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmlembedded.c	2008-10-02 17:06:23.000000000 +0300
 @@ -33,6 +33,8 @@
  #include "htmliframe.h"
  #include "htmlpainter.h"
@@ -112,7 +122,7 @@ diff -u -r gtkhtml/gtkhtml/htmlembedded.c gtkhtml/gtkhtml/htmlembedded.c
 -html_embedded_encode_string (const gchar *str)
 +html_embedded_encode_string (const gchar *before,const gchar *codepage)
  {
-+	    gchar* str = before;
++	    const gchar* str = before;
 +	    iconv_t iconv_cd = genIconvTo(codepage);
 +	    if(iconv_cd)
 +	    {
@@ -137,9 +147,9 @@ diff -u -r gtkhtml/gtkhtml/htmlembedded.c gtkhtml/gtkhtml/htmlembedded.c
  }
  
  void
-diff -u -r gtkhtml/gtkhtml/htmlembedded.h gtkhtml/gtkhtml/htmlembedded.h
---- gtkhtml/gtkhtml/htmlembedded.h	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmlembedded.h	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmlembedded.h gtkhtml-my/gtkhtml/htmlembedded.h
+--- gtkhtml/gtkhtml/htmlembedded.h	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmlembedded.h	2008-10-02 16:31:46.000000000 +0300
 @@ -45,7 +45,7 @@
  
  
@@ -162,9 +172,9 @@ diff -u -r gtkhtml/gtkhtml/htmlembedded.h gtkhtml/gtkhtml/htmlembedded.h
  HTMLEmbedded *html_embedded_new_widget     (GtkWidget         *parent,
  					    GtkHTMLEmbedded   *eb,
  					    HTMLEngine        *engine);
-diff -u -r gtkhtml/gtkhtml/htmlengine.c gtkhtml/gtkhtml/htmlengine.c
---- gtkhtml/gtkhtml/htmlengine.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmlengine.c	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmlengine.c gtkhtml-my/gtkhtml/htmlengine.c
+--- gtkhtml/gtkhtml/htmlengine.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmlengine.c	2008-10-02 16:31:46.000000000 +0300
 @@ -2766,11 +2766,24 @@
  	html_element_free (element);
  }
@@ -219,9 +229,9 @@ diff -u -r gtkhtml/gtkhtml/htmlengine.c gtkhtml/gtkhtml/htmlengine.c
  				/* The time in seconds until the refresh */
  				refresh_delay = atoi(content);
  
-diff -u -r gtkhtml/gtkhtml/htmlengine.h gtkhtml/gtkhtml/htmlengine.h
---- gtkhtml/gtkhtml/htmlengine.h	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmlengine.h	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmlengine.h gtkhtml-my/gtkhtml/htmlengine.h
+--- gtkhtml/gtkhtml/htmlengine.h	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmlengine.h	2008-10-02 16:31:46.000000000 +0300
 @@ -315,6 +315,9 @@
  void           html_engine_stop_parser      (HTMLEngine  *e);
  void           html_engine_stop             (HTMLEngine  *e);
@@ -232,9 +242,9 @@ diff -u -r gtkhtml/gtkhtml/htmlengine.h gtkhtml/gtkhtml/htmlengine.h
  
  /* Rendering control.  */
  gint  html_engine_calc_min_width       (HTMLEngine *e);
-diff -u -r gtkhtml/gtkhtml/htmlform.c gtkhtml/gtkhtml/htmlform.c
---- gtkhtml/gtkhtml/htmlform.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmlform.c	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmlform.c gtkhtml-my/gtkhtml/htmlform.c
+--- gtkhtml/gtkhtml/htmlform.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmlform.c	2008-10-02 16:31:46.000000000 +0300
 @@ -125,10 +125,11 @@
  	gint first = TRUE;
  	GList *i = form->elements;
@@ -250,9 +260,9 @@ diff -u -r gtkhtml/gtkhtml/htmlform.c gtkhtml/gtkhtml/htmlform.c
  		if (strlen (ptr)) {
  			if(!first)
  				encoding = g_string_append_c (encoding, '&');
-diff -u -r gtkhtml/gtkhtml/htmlhidden.c gtkhtml/gtkhtml/htmlhidden.c
---- gtkhtml/gtkhtml/htmlhidden.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmlhidden.c	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmlhidden.c gtkhtml-my/gtkhtml/htmlhidden.c
+--- gtkhtml/gtkhtml/htmlhidden.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmlhidden.c	2008-10-02 16:31:46.000000000 +0300
 @@ -28,19 +28,19 @@
  
  
@@ -276,9 +286,9 @@ diff -u -r gtkhtml/gtkhtml/htmlhidden.c gtkhtml/gtkhtml/htmlhidden.c
  		encoding = g_string_append (encoding, ptr);
  		g_free (ptr);
  	}
-diff -u -r gtkhtml/gtkhtml/htmlimageinput.c gtkhtml/gtkhtml/htmlimageinput.c
---- gtkhtml/gtkhtml/htmlimageinput.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmlimageinput.c	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmlimageinput.c gtkhtml-my/gtkhtml/htmlimageinput.c
+--- gtkhtml/gtkhtml/htmlimageinput.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmlimageinput.c	2008-10-02 16:31:46.000000000 +0300
 @@ -107,13 +107,13 @@
  
  
@@ -304,9 +314,9 @@ diff -u -r gtkhtml/gtkhtml/htmlimageinput.c gtkhtml/gtkhtml/htmlimageinput.c
  		encoding = g_string_append (encoding, ptr);
  		g_free (ptr);
  
-diff -u -r gtkhtml/gtkhtml/htmlradio.c gtkhtml/gtkhtml/htmlradio.c
---- gtkhtml/gtkhtml/htmlradio.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmlradio.c	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmlradio.c gtkhtml-my/gtkhtml/htmlradio.c
+--- gtkhtml/gtkhtml/htmlradio.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmlradio.c	2008-10-02 16:31:46.000000000 +0300
 @@ -49,20 +49,20 @@
  }
  
@@ -331,9 +341,9 @@ diff -u -r gtkhtml/gtkhtml/htmlradio.c gtkhtml/gtkhtml/htmlradio.c
  		encoding = g_string_append (encoding, ptr);
  		g_free (ptr);
  	}
-diff -u -r gtkhtml/gtkhtml/htmlselect.c gtkhtml/gtkhtml/htmlselect.c
---- gtkhtml/gtkhtml/htmlselect.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmlselect.c	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmlselect.c gtkhtml-my/gtkhtml/htmlselect.c
+--- gtkhtml/gtkhtml/htmlselect.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmlselect.c	2008-10-02 16:31:46.000000000 +0300
 @@ -102,7 +102,8 @@
  add_selected (GtkTreeModel *model,
                GtkTreePath *path,
@@ -378,9 +388,9 @@ diff -u -r gtkhtml/gtkhtml/htmlselect.c gtkhtml/gtkhtml/htmlselect.c
  		}
  	}
  
-diff -u -r gtkhtml/gtkhtml/htmltextarea.c gtkhtml/gtkhtml/htmltextarea.c
---- gtkhtml/gtkhtml/htmltextarea.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmltextarea.c	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmltextarea.c gtkhtml-my/gtkhtml/htmltextarea.c
+--- gtkhtml/gtkhtml/htmltextarea.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmltextarea.c	2008-10-02 16:31:46.000000000 +0300
 @@ -63,7 +63,7 @@
  }
  
@@ -408,9 +418,9 @@ diff -u -r gtkhtml/gtkhtml/htmltextarea.c gtkhtml/gtkhtml/htmltextarea.c
  		encoding = g_string_append (encoding, encoded_str);
  
  		g_free (encoded_str);
-diff -u -r gtkhtml/gtkhtml/htmltextinput.c gtkhtml/gtkhtml/htmltextinput.c
---- gtkhtml/gtkhtml/htmltextinput.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmltextinput.c	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmltextinput.c gtkhtml-my/gtkhtml/htmltextinput.c
+--- gtkhtml/gtkhtml/htmltextinput.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmltextinput.c	2008-10-02 16:31:46.000000000 +0300
 @@ -108,19 +108,19 @@
  /* HTMLEmbedded methods.  */
  
@@ -434,9 +444,9 @@ diff -u -r gtkhtml/gtkhtml/htmltextinput.c gtkhtml/gtkhtml/htmltextinput.c
  		encoding = g_string_append (encoding, ptr);
  		g_free (ptr);
  	}
-diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
---- gtkhtml/gtkhtml/htmltokenizer.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmltokenizer.c	2008-09-18 18:19:59.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml-my/gtkhtml/htmltokenizer.c
+--- gtkhtml/gtkhtml/htmltokenizer.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmltokenizer.c	2008-10-02 16:58:52.000000000 +0300
 @@ -33,6 +33,7 @@
  enum {
  	HTML_TOKENIZER_BEGIN_SIGNAL,
@@ -469,7 +479,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
 -	gchar utf8_buffer[7];
 -	gint utf8_length;
 +	
-+	const gchar * content_type;
++	gchar * content_type;
 +	/*convert*/
 +	iconv_t iconv_cd;
 +
@@ -563,7 +573,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  	g_free (t->priv);
  	t->priv = NULL;
  
-@@ -369,10 +393,127 @@
+@@ -369,10 +393,128 @@
  		/* finally get first token */
  		token = buffer->data;
  	}
@@ -597,14 +607,14 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
 +		{
 +			char save = *(write_pos+count_chars+1);
 +			*(write_pos+count_chars+1)=0;
-+			/*&#1234567*/
++			/* &#1234567 */
 +			if (*write_pos == '#')
 +			{
 +				if(isdigit(*(write_pos+1)))
 +				{
 +					value=strtoull(write_pos+1,NULL,10);
 +				}
-+				/*&#xdd*/
++				/* &#xdd */
 +				else if(*(write_pos+1) =='x')
 +				{
 +					value=strtoull(write_pos+2,NULL,16);
@@ -618,7 +628,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
 +			if(count_chars>0)
 +			{
 +				memset(write_pos-1,' ',count_chars+3);
-+				/*firstchar is & I think this not need*/
++				/* first char is & I think this not need */
 +				write_pos --;
 +				char *read_pos=write_pos+count_chars+3;
 +				write_pos += g_unichar_to_utf8 (value,write_pos);
@@ -639,16 +649,17 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
 +	size_t currlength = strlen(token);
 +	if(iconv_cd!=NULL && needConvert(token))
 +	{
-+		gchar *current = token;
++		const gchar * current = token;
 +		size_t currlength = strlen(token);
 +		size_t newlength = currlength*7+1;
 +		size_t oldlength = newlength;
-+		gchar *newbuffer = g_new(gchar,newlength);
-+		gchar *returnbuffer = newbuffer;
++		gchar * newbuffer = g_new(gchar,newlength);
++		gchar * returnbuffer = newbuffer;
 +		g_assert(returnbuffer);
 +		while(currlength>0)
 +		{
-+			iconv(iconv_cd,&current,&currlength,&newbuffer,&newlength);
++			/* gchar is typedef from unsigned char */
++			iconv(iconv_cd,(char **)&current,&currlength,&newbuffer,&newlength);
 +			if(currlength>0)
 +			{
 +				g_print("IconvError=%s",current);
@@ -691,7 +702,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  static gchar *
  html_tokenizer_real_next_token (HTMLTokenizer *t)
  {
-@@ -411,8 +552,8 @@
+@@ -411,8 +553,8 @@
  
  	p->tokens_num--;
  	g_assert (p->tokens_num >= 0);
@@ -702,9 +713,12 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  }
  
  static gboolean
-@@ -463,9 +604,75 @@
+@@ -461,11 +603,77 @@
+ }
+ 
  static gint
- charset_is_utf8 (gchar *content_type)
+-charset_is_utf8 (gchar *content_type)
++charset_is_utf8 (const gchar *content_type)
  {
 -	return content_type && strstr (content_type, "charset=utf-8") != NULL;
 +	return content_type && strstr (content_type, "=utf-8") != NULL;
@@ -779,7 +793,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  static void
  html_tokenizer_real_begin (HTMLTokenizer *t, gchar *content_type)
  {
-@@ -490,17 +697,8 @@
+@@ -490,17 +698,8 @@
  	p->searchCount = 0;
  	p->searchGtkHTMLCount = 0;
  	p->title = FALSE;
@@ -798,7 +812,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  }
  
  static void
-@@ -561,6 +759,24 @@
+@@ -561,6 +760,24 @@
  	}
  }
  
@@ -823,7 +837,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  static void
  html_tokenizer_append_token_buffer (HTMLTokenizer *t, gint min_size)
  {
-@@ -779,196 +995,6 @@
+@@ -779,196 +996,6 @@
  	}
  }
  
@@ -1020,7 +1034,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  static void
  in_tag (HTMLTokenizer *t, const gchar **src)
  {
-@@ -1013,24 +1039,6 @@
+@@ -1013,24 +1040,6 @@
  }
  
  static void
@@ -1045,7 +1059,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  start_tag (HTMLTokenizer *t, const gchar **src)
  {
  	(*src)++;
-@@ -1309,12 +1317,8 @@
+@@ -1309,12 +1318,8 @@
  		in_extension (t, src);
  	else if (p->script || p->style)
  		in_script_or_style (t, src);
@@ -1058,7 +1072,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  	else if (**src == '<' && !p->tag)
  		start_tag (t, src);
  	else if (**src == '>' && p->tag && !p->tquote)
-@@ -1335,7 +1339,7 @@
+@@ -1335,7 +1340,7 @@
  html_tokenizer_real_write (HTMLTokenizer *t, const gchar *string, size_t size)
  {
  	const gchar *src = string;
@@ -1067,7 +1081,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  	while ((src - string) < size)
  		html_tokenizer_tokenize_one_char (t, &src);
  }
-@@ -1383,12 +1387,22 @@
+@@ -1383,12 +1388,22 @@
  void
  html_tokenizer_begin (HTMLTokenizer *t, gchar *content_type)
  {
@@ -1090,7 +1104,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  html_tokenizer_end (HTMLTokenizer *t)
  {
  	g_return_if_fail (t && HTML_IS_TOKENIZER (t));
-@@ -1428,6 +1442,23 @@
+@@ -1428,6 +1443,23 @@
  }
  
  gchar *
@@ -1114,7 +1128,7 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  html_tokenizer_next_token (HTMLTokenizer *t)
  {
  	HTMLTokenizerClass *klass;
-@@ -1438,7 +1469,7 @@
+@@ -1438,7 +1470,7 @@
  
  	if (klass->next_token)
  		return klass->next_token (t);
@@ -1123,9 +1137,9 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.c gtkhtml/gtkhtml/htmltokenizer.c
  	g_warning ("No next_token method defined.");
  	return NULL;
  }
-diff -u -r gtkhtml/gtkhtml/htmltokenizer.h gtkhtml/gtkhtml/htmltokenizer.h
---- gtkhtml/gtkhtml/htmltokenizer.h	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/htmltokenizer.h	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/htmltokenizer.h gtkhtml-my/gtkhtml/htmltokenizer.h
+--- gtkhtml/gtkhtml/htmltokenizer.h	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/htmltokenizer.h	2008-10-02 16:31:46.000000000 +0300
 @@ -27,6 +27,7 @@
  
  #include <glib-object.h>
@@ -1170,15 +1184,15 @@ diff -u -r gtkhtml/gtkhtml/htmltokenizer.h gtkhtml/gtkhtml/htmltokenizer.h
 +iconv_t 	genIconvTo(const gchar * content_type);
 +gchar* 	ConvertIconv(const iconv_t iconv_cd,const gchar * token);
  #endif /* _HTMLTOKENIZER_H_ */
-diff -u -r gtkhtml/gtkhtml/testgtkhtml.c gtkhtml/gtkhtml/testgtkhtml.c
---- gtkhtml/gtkhtml/testgtkhtml.c	2008-09-16 18:38:59.000000000 +0300
-+++ gtkhtml/gtkhtml/testgtkhtml.c	2008-09-16 18:42:22.000000000 +0300
+diff -u -r gtkhtml/gtkhtml/testgtkhtml.c gtkhtml-my/gtkhtml/testgtkhtml.c
+--- gtkhtml/gtkhtml/testgtkhtml.c	2008-10-02 16:15:47.000000000 +0300
++++ gtkhtml-my/gtkhtml/testgtkhtml.c	2008-10-02 17:03:41.000000000 +0300
 @@ -669,7 +669,9 @@
  		gtk_html_end (html, handle, GTK_HTML_STREAM_ERROR);
  		return;
  	}
 -
-+	gchar *ContentType = soup_message_headers_get(msg->response_headers,"Content-type");
++	gchar *ContentType = (gchar *)soup_message_headers_get(msg->response_headers,"Content-type");
 +	if(ContentType!=NULL)
 +		gtk_html_set_default_content_type(html,ContentType);
  	gtk_html_write (html, handle, msg->response_body->data,
