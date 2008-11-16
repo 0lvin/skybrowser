@@ -1,0 +1,76 @@
+diff -u -r evolution-2.22.3.1/mail/em-sync-stream.c evolution-2.22.3.1/mail/em-sync-stream.c
+--- evolution-2.22.3.1/mail/em-sync-stream.c	2008-04-04 12:11:42.000000000 +0300
++++ evolution-2.22.3.1/mail/em-sync-stream.c	2008-11-16 15:51:02.000000000 +0200
+@@ -54,16 +54,69 @@
+ 
+ static CamelStreamClass *parent_class = NULL;
+ 
++static void
++replace_content_type(gchar* str)
++{
++	gchar* newcodepage = "text/html; codepage=utf8";
++	gchar *endhead;
++	gchar *codepage;
++	size_t len_content_type;
++	if(str==NULL)
++	    return;
++	//search end head
++	endhead = strstr( str, "</head>");
++	if(endhead==NULL)
++	    return;
++	//seach start content-type
++	while( (codepage = strstr( str, "text/")) != NULL )
++	{
++		//found needed content?
++		if(codepage > endhead)
++		    return;
++		len_content_type = strcspn( codepage, "'\"");
++		//i think content_type with length 40 chars not exist
++		if(len_content_type < 40)
++		{
++			//callculate end content
++			if((codepage + len_content_type) > endhead)
++			    return;
++			//clean content type
++			memset( codepage, ' ', len_content_type);
++			//set new content type
++			if(strlen( newcodepage) < len_content_type)
++				memcpy(codepage, newcodepage, strlen(newcodepage));
++		}
++		//omit founded content_type
++		str = codepage + len_content_type;
++	}
++}
++
+ static gboolean
+ emss_process_message (struct _write_msg *msg)
+ {
+ 	struct _EMSyncStream *emss = msg->emss;
+ 
++	if (emss->cancel) {
++		/* Do not pass data to the child if we are canceled. */
++		e_flag_set (msg->done);
++		return FALSE;
++	}
++
+ 	/* Force out any pending data before doing anything else. */
+ 	if (emss->buffer != NULL && emss->buffer->len > 0) {
+-		EMSS_CLASS (emss)->sync_write (
+-			CAMEL_STREAM (emss), emss->buffer->str,
+-			emss->buffer->len);
++		gchar * str = g_new(gchar,emss->buffer->len + 1);
++		if(str == NULL)
++			return FALSE;
++
++		str[emss->buffer->len + 1] = 0;
++		strcpy(str, emss->buffer->str);
++		replace_content_type(str);
++
++ 		EMSS_CLASS (emss)->sync_write (
++			CAMEL_STREAM (emss), str,
++			strlen(str));
++
++		g_free(str);
+ 		g_string_set_size (emss->buffer, 0);
+ 	}
+ 
