@@ -63,7 +63,7 @@ diff -u -r evolution-2.22.3.1/mail/em-sync-stream.c evolution-2.22.3.1/mail/em-s
 +			return FALSE;
 +
 +		str[emss->buffer->len + 1] = 0;
-+		strcpy(str, emss->buffer->str);
++		strncpy(str, emss->buffer->str, emss->buffer->len);
 +		replace_content_type(str);
 +
 + 		EMSS_CLASS (emss)->sync_write (
