@@ -5,7 +5,8 @@ INCLUDES = 				\
 	-I$(srcdir)			\
 	-I$(includedir)			\
 	$(GTKHTML_CFLAGS)		\
-	$(SOUP_CFLAGS)
+	$(SOUP_CFLAGS)			\
+	-pedantic
 
 LDADD = $(SOUP_LIBS)                    \
         $(GTKHTML_LIBS)

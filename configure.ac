@@ -1,8 +1,8 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.61)
-AC_INIT([skybrowser],[0.1],[pauk.denis@gmail.com])
+AC_PREREQ(2.63)
+AC_INIT([skybrowser],[0.2],[pauk.denis@gmail.com])
 AC_CONFIG_SRCDIR([src/skybrowser.c])
 
 AM_INIT_AUTOMAKE
