@@ -148,6 +148,7 @@ sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
+top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 skybrowserdir = ../
@@ -156,7 +157,8 @@ INCLUDES = \
 	-I$(srcdir)			\
 	-I$(includedir)			\
 	$(GTKHTML_CFLAGS)		\
-	$(SOUP_CFLAGS)
+	$(SOUP_CFLAGS)			\
+	-pedantic
 
 LDADD = $(SOUP_LIBS)                    \
         $(GTKHTML_LIBS)
