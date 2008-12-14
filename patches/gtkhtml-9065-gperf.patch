@@ -46,7 +46,7 @@ Index: gtkhtml/htmltokenizer.c
 -				{
 -					value=strtoull (write_pos + 1, NULL, 10);
 +				/*value to add*/
-+				gunichar value = '#';//INVALID_CHARACTER_MARKER;
++				gunichar value = INVALID_CHARACTER_MARKER;
 +				/*skip not needed &*/
 +				read_pos ++;
 +				count_chars = strcspn(read_pos, ";");
