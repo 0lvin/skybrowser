@@ -20,7 +20,7 @@ Index: gtkhtml/htmltokenizer.c
 +		return NULL;
 +	/*stop pointer*/
 +	gchar* full_pos = token + strlen(token);
-+	gchar* resulted = calloc(1, strlen (token) +1);
++	gchar* resulted = g_new(gchar, strlen (token) +1);
 +	gchar* write_pos = resulted;
 +	gchar* read_pos = token;
 +	while ( read_pos < full_pos )
