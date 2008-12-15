@@ -50,7 +50,7 @@ Index: gtkhtml/htmltokenizer.c
 +				/*skip not needed &*/
 +				read_pos ++;
 +				count_chars = strcspn(read_pos, ";");
-+				if(count_chars < 14 && count_chars > 2)
++				if(count_chars < 14 && count_chars > 1)
 +				{					
 +					*(read_pos + count_chars)=0;
 +					/* &#******; */
