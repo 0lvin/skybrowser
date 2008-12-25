@@ -1,4 +1,3 @@
-#include <gnome.h>
 #include <gtkhtml/gtkhtml.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -458,17 +457,19 @@ on_entry_changed(GtkWidget * widget, gpointer data)
 }
 
 //маин он и в Африке маин:-)
-gint
-main(gint argc, gchar * args[])
+int 
+main (int argc, char **argv)
 {
    struct All_variable *variable = g_new(struct All_variable, 1);
 
    /*(struct All_variable *)calloc(sizeof(struct All_variable), 1);
       g_new(struct All_variable, 1); */
 
-   /* prepare our environment, we need gnome and gconf */
-   gnome_init(PACKAGE, VERSION, argc, args);
-   gconf_init(argc, args);
+  /* Инициализируем поддержку i18n */
+  gtk_set_locale ();
+
+  /* Инициализируем установки виджета */
+  gtk_init (&argc, &argv);
 
    /* create GtkHTML widget */
    variable->html = gtk_html_new();
@@ -484,16 +485,15 @@ main(gint argc, gchar * args[])
 
    gtk_window_set_default_size(GTK_WINDOW(variable->window), 300, 20);
 #endif
-   /* create GNOME app and put GtkHTML in scrolled window in it */
-   variable->app = gnome_app_new(PACKAGE_STRING, PACKAGE_STRING);
+
+   variable->app = gtk_window_new (GTK_WINDOW_TOPLEVEL);
    variable->scrolled_window = gtk_scrolled_window_new(NULL, NULL);
    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW
 				  (variable->scrolled_window),
 				  GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
    gtk_container_add(GTK_CONTAINER(variable->scrolled_window),
 		     variable->html);
-   gnome_app_set_contents(GNOME_APP(variable->app),
-			  variable->scrolled_window);
+   gtk_container_add(GTK_CONTAINER(variable->app), variable->scrolled_window);
    gtk_window_set_default_size(GTK_WINDOW(variable->app), 800, 600);
    variable->session = soup_session_sync_new();
    gtk_widget_show_all(variable->app);
@@ -536,7 +536,7 @@ main(gint argc, gchar * args[])
    variable->saved_cookies = calloc(1, sizeof(char));
    //on_link_clicked (GTK_HTML(variable->html),args[1],variable);
    gtk_entry_set_text((GtkEntry *) (variable->entry),
-		      argc > 1 ? args[1] : "http://gnome.org");
+		      argc > 1 ? argv[1] : "http://gnome.org");
    //on_entry_changed (variable->entry, variable);
    on_entry_changed(variable->entry, variable);
    /* run the main loop */
