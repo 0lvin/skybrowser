@@ -1,3 +1,4 @@
+#include <gio/gio.h>
 #include <gtkhtml/gtkhtml.h>
 #include <sys/types.h>
 #include <string.h>
@@ -93,7 +94,7 @@ parsecurrent(const gchar * url, gchar ** current)
 	    }
 	strcat(path, url);
     }
-    
+
     if (strchr(path + strlen("http://"), '/') == NULL)
 	strcat(path, "/");
     g_print("full url=%s\n", path);
@@ -104,7 +105,7 @@ parsecurrent(const gchar * url, gchar ** current)
 	len--;
     }
     free(*current);
-    
+
     *current = calloc(len + 1 + 1, sizeof(char));
     strncpy(*current, path, len + 1);
     (*current)[len + 1] = 0;
@@ -159,44 +160,98 @@ addCookies(gchar ** saved_cookies, const gchar * cookies)
 
 }
 
-gchar* decode(gchar * token)
+gchar *
+decode(const gchar * token)
 {
-	gchar *full_pos;
-	gchar *resulted;
-	gchar *write_pos;
-	gchar *read_pos;
+    const gchar *full_pos;
+    gchar *resulted;
+    gchar *write_pos;
+    const gchar *read_pos;
 
-	if (token == NULL)
+    if (token == NULL)
 		return NULL;
 
-	/*stop pointer*/
-	full_pos = token + strlen (token);
-	resulted = g_new (gchar, strlen (token) + 1);
-	write_pos = resulted;
-	read_pos = token;
-	while (read_pos < full_pos) {
-		size_t count_chars = strcspn (read_pos, "%");
-		memcpy (write_pos, read_pos, count_chars);
-		write_pos += count_chars;
-		read_pos += count_chars;
-		/*may be end string?*/
-		if (read_pos < full_pos)
-			if (*read_pos == '%') {
-				/*skip not needed %*/
-				read_pos ++;
-				if(*(read_pos) != 0)
-					if(*(read_pos+1) != 0){
-						char save=*(read_pos + 2);
-						*(read_pos + 2)=0;
-						(*write_pos)=strtol(read_pos, NULL, 16);
-						write_pos += 1;
-						*(read_pos + 2) = save;
-						read_pos += 2;
-					}
+    /*stop pointer */
+    full_pos = token + strlen(token);
+    resulted = g_new(gchar, strlen(token) + 1);
+    write_pos = resulted;
+    read_pos = token;
+    while (read_pos < full_pos) {
+	size_t count_chars = strcspn(read_pos, "%");
+
+	memcpy(write_pos, read_pos, count_chars);
+	write_pos += count_chars;
+	read_pos += count_chars;
+	/*may be end string? */
+	if (read_pos < full_pos)
+	    if (*read_pos == '%') {
+		/*skip not needed % */
+		read_pos++;
+		if (*(read_pos) != 0)
+		    if (*(read_pos + 1) != 0) {
+				gchar save[3];
+				save[0]=*read_pos;
+				save[1]=*(read_pos + 1);
+				save[2]=0;
+				(*write_pos) = strtol(save, NULL, 16);
+				write_pos += 1;
+				read_pos += 2;
+		    }
+	    }
+    }
+    *write_pos = 0;
+    return resulted;
+}
+
+gchar *
+get_default_content(const gchar * action, gsize * length, gchar * contentType)
+{
+    gchar *buf = NULL;
+    GFile *fd = NULL;
+    GError *result = NULL;
+
+    fd = g_file_new_for_uri(action);
+
+    g_file_load_contents(fd, NULL, &buf, length, NULL, &result);
+
+    if (buf == NULL) {
+		static gchar html_source[] = "<html><body>Error while read file</body><html>";
+		buf = g_strdup(html_source);
+		*length = strlen(html_source);
+    }
+
+    g_object_unref(fd);
+    return buf;
+}
+
+gchar *
+get_data_content(const gchar * action, gsize * length, gchar ** contentType)
+{
+    guchar *buf = NULL;
+    if (!strncmp(action, "data:", strlen("data:"))) {
+		const gchar *real_action = action + strlen("data:");
+		const gchar *start_data = strchr(real_action, ';');
+		if (start_data != NULL) {
+			gsize ContentType_length = start_data - real_action;
+			*contentType = g_new(gchar, ContentType_length + 1);
+			memcpy(*contentType, real_action, ContentType_length);
+			*(*contentType + ContentType_length) = 0;
+			g_print("internal data query used: Content_type %s\n", *contentType);
+			if (!strncmp(start_data, ";base64,", strlen(";base64,"))) {
+				gint state = 0;
+				guint save = 0;
+				const gchar * toDecode = start_data + strlen(";base64,");
+				gchar *result_decode = decode(toDecode);
+				buf = calloc((strlen(result_decode) * 3) / 4 + 1, 1);
+				*length = g_base64_decode_step(result_decode,
+					       strlen(result_decode),
+					       buf, &state, &save);
+				g_print("using base64!!%s", result_decode);
+				g_free(result_decode);
 			}
-	}
-	*write_pos = 0;
-	return resulted;
+		}
+    }
+    return (gchar *)buf;
 }
 
 static void
@@ -206,53 +261,18 @@ loadData(GtkHTML * html, char *realurl, const gchar * method,
 {
     struct All_variable *variable = (struct All_variable *) data;
 
-    const gchar *ContentType = NULL;
+    gchar *ContentType = NULL;
 
     gchar html_source[] = "<html><body>Error while read file</body><html>";
 
     SoupMessage *msg;
 
-    const gchar *buf = NULL;
+    gchar *buf = NULL;
 
     size_t length = strlen(html_source);
 
-    int fd;
+    buf = get_data_content(action, &length, &ContentType);
 
-    if (!strncmp(action, "data:", strlen("data:"))) {
-	    char * start_data = strchr(action + strlen("data:"),';');
-	    if(start_data!=NULL){
-		size_t ContentType_length = start_data - action - strlen("data:");
-		ContentType = calloc(ContentType_length + 1,1);
-		memcpy(ContentType,action + strlen("data:"), ContentType_length);
-		g_print("internal data query used: Content_type %s\n",ContentType);
-		if(!strncmp(start_data,";base64,",strlen(";base64,"))){
-			gint state=0;
-			guint save=0;
-			gchar * result_decode = decode(start_data + strlen(";base64,"));
-			buf = calloc((strlen(result_decode)*3)/4+1,1);
-			length = g_base64_decode_step(
-				result_decode,
-				strlen(result_decode),
-				buf,
-				&state,
-                                &save);
-			g_print("using base64!!%s",result_decode);
-		}
-	    }
-    }
-    if (!strncmp(realurl, "file:", strlen("file:"))) {
-	fd = open(realurl + 5, O_RDONLY);
-	if (fd != -1) {
-	    length = lseek(fd, 0, SEEK_END);
-	    lseek(fd, 0, SEEK_SET);
-	    buf = mmap(NULL, length, PROT_READ, MAP_PRIVATE, fd, 0);
-	    if (buf == (void *) -1)	//нельзя спроецировать
-	    {
-		buf = NULL;
-		close(fd);
-	    }
-	}
-    }
     if (!strncmp(realurl, "http:", strlen("http:"))) {
 	if (!strcmp(method, "POST") || !strcmp(method, "GET")) {
 	    if (!strcmp(method, "POST")) {
@@ -305,7 +325,7 @@ loadData(GtkHTML * html, char *realurl, const gchar * method,
 		}
 		if (status >= 200 && status < 300) {
 		    ContentType =
-			soup_message_headers_get(msg->response_headers,
+			(gchar*)soup_message_headers_get(msg->response_headers,
 						 "Content-type");
 		    {
 			const gchar *cookies =
@@ -315,7 +335,7 @@ loadData(GtkHTML * html, char *realurl, const gchar * method,
 			if (cookies)
 			    addCookies(&(variable->saved_cookies), cookies);
 		    }
-		    buf = msg->response_body->data;
+		    buf = (gchar*)msg->response_body->data;
 		    length = msg->response_body->length;
 		}
 		else {
@@ -324,18 +344,14 @@ loadData(GtkHTML * html, char *realurl, const gchar * method,
 	    }
 	}
     }
-    if (buf == NULL) {
-	buf = html_source;
-	g_print("Error: submitting '%s' to '%s' using method '%s' by '%s' \n",
-		encoding, action, method, realurl);
-	length = strlen(html_source);
-    };
+    if (buf == NULL)
+		buf = get_default_content(realurl, &length, &ContentType);
     if (ContentType != NULL)
 	if (!strcmp(ContentType, "text/html"))
 	    ContentType = NULL;	//not correct encoding
     if (ContentType == NULL)
-	if (*buf == '<' || *buf == '\r' || *buf == '\n')	///check html
-	{
+	/*check html */
+	if (*buf == '<' || *buf == '\r' || *buf == '\n') {
 	    char *temp = strstr(buf, "text/html; ");
 
 	    if (temp == NULL) {
@@ -361,19 +377,16 @@ loadData(GtkHTML * html, char *realurl, const gchar * method,
     if (ContentType != NULL)
 	gtk_html_set_default_content_type(html, ContentType);
 
-    if(buf!=NULL){
+    if (buf != NULL) {
 	gtk_html_stream_write(stream, buf, length);
 	gtk_html_stream_close(stream, GTK_HTML_STREAM_OK);
     }
 
     if (gotocharp)
 	change_position(html, gotocharp, data);
-    if (!strncmp(realurl, "file:", strlen("file:"))) {
-	if (fd != -1) {
-	    munmap((void *) buf, length);
-	    close(fd);
-	}
-    }
+
+    if (buf != NULL)
+	g_free(buf);
 }
 
 
@@ -412,7 +425,7 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 
 		    g_print("search=%s\n", search);
 		    *search = 0;
-		    /*realurl[strlen(realurl)-1]=0;*/
+		    /*realurl[strlen(realurl)-1]=0; */
 		}
 	    strcat(realurl, action);
 	}
