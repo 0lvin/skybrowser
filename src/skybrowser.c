@@ -7,7 +7,7 @@
 #include <sys/mman.h>
 #include <iconv.h>
 
-/*Структурв для хранения всех переменных*/
+/*Структур для хранения всех переменных*/
 struct All_variable
 {
     GtkWidget *app;
@@ -168,13 +168,11 @@ loadData(GtkHTML * html, char *realurl, const gchar * method,
 
     gchar *ContentType = NULL;
 
-    gchar html_source[] = "<html><body>Error while read file</body><html>";
-
     SoupMessage *msg;
 
     gchar *buf = NULL;
 
-    size_t length = strlen(html_source);
+    size_t length = 0;
 
     buf = get_data_content(action, &length, &ContentType);
 
