@@ -80,7 +80,9 @@ get_data_content(const gchar * action, gsize * length, gchar ** contentType)
 			*contentType = g_new(gchar, ContentType_length + 1);
 			memcpy(*contentType, real_action, ContentType_length);
 			*(*contentType + ContentType_length) = 0;
+#ifdef DebugLoaders
 			g_print("internal data query used: Content_type %s\n", *contentType);
+#endif
 			if (!strncmp(start_data, ";base64,", strlen(";base64,"))) {
 				gint state = 0;
 				guint save = 0;
@@ -90,11 +92,12 @@ get_data_content(const gchar * action, gsize * length, gchar ** contentType)
 				*length = g_base64_decode_step(result_decode,
 					       strlen(result_decode),
 					       buf, &state, &save);
+#ifdef DebugLoaders						   
 				g_print("using base64!!%s", result_decode);
+#endif
 				g_free(result_decode);
 			}
 		}
     }
     return (gchar *)buf;
 }
-
