@@ -132,33 +132,6 @@ change_html_base(GtkHTML * html, const gchar * url)
     return tmpstr;
 }
 
-
-//Сохранить кукиес
-static void
-addCookies(gchar ** saved_cookies, const gchar * cookies)
-{
-    char *posend;
-
-    g_print("\n---------------------------\nCookies=%s\n---------------\n", cookies);
-    posend = strchr(cookies, ';');
-    if (posend != NULL) {
-	char *new_cookies;
-
-	char *old_cookies;
-
-	new_cookies =
-	    calloc(strlen(*saved_cookies) + posend - cookies + 2,
-		   sizeof(gchar));
-	strcpy(new_cookies, *saved_cookies);
-	strncat(new_cookies, cookies, posend - cookies + 1);
-	g_print("NewCookies=%s\n", new_cookies);
-	old_cookies = *saved_cookies;
-	*saved_cookies = new_cookies;
-	free(old_cookies);
-    }
-
-}
-
 static void
 loadData(GtkHTML * html, char *realurl, const gchar * method,
 	 const gchar * action, const gchar * encoding, GtkHTMLStream * stream,
@@ -228,7 +201,7 @@ loadData(GtkHTML * html, char *realurl, const gchar * method,
 						"Set-Cookie");
 
 			if (cookies)
-			    addCookies(&(variable->saved_cookies), cookies);
+			    cookies_storage_add(&(variable->saved_cookies), cookies, gtk_html_get_base(html));
 		    }
 		    buf = (gchar*)msg->response_body->data;
 		    length = msg->response_body->length;

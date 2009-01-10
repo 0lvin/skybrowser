@@ -1,6 +1,7 @@
-#include <loaders.h>
+#include "loaders.h"
 #include <gio/gio.h>
-
+#include "cookies_storage.h"
+#include <libsoup/soup.h>
 /*unescape url*/
 gchar *
 decode(const gchar * token)
@@ -65,6 +66,77 @@ get_default_content(const gchar * action, gsize * length, gchar * contentType)
 
     g_object_unref(fd);
     return buf;
+}
+
+///my crazy world!!!!
+/*
+ * encodind -- params for Get Or Post
+ */
+gchar *
+get_http_content(const gchar * action, gsize * length, gchar * contentType, gchar* method, gchar* encoding,
+				 gchar** curr_base, cookies_storage cookies_save, SoupSession* session)
+{
+	gchar * buf = NULL;	
+	SoupMessage *msg;
+    if (!strncmp(action, "http:", strlen("http:"))) {
+		/*Know methods!!*/
+		if (!strcmp(method, "POST") || !strcmp(method, "GET")) {
+	    	if (!strcmp(method, "POST")) {
+				msg = soup_message_new("POST", action);
+					soup_message_set_request(msg,
+						 "application/x-www-form-urlencoded",
+						SOUP_MEMORY_TAKE, (char *) action,
+					strlen(encoding));
+	    	} else if (!strcmp(method, "GET")) {
+					gchar *tmpstr = g_new(gchar,strlen(action) + strlen(encoding) + 2);				      
+					strcpy(tmpstr, action);
+					if (*encoding != 0) {
+		    			strcat(tmpstr, "?");
+		    			strcat(tmpstr, encoding);
+					}
+					msg = soup_message_new("GET", tmpstr);
+					g_free(tmpstr);
+	    	}			
+	    	{			
+				soup_message_headers_append(msg->request_headers, "Cookie",
+						cookies_storage_get(cookies_save, action));
+				soup_message_headers_append(msg->request_headers,
+					    "Accept-Charset",
+					    "UTF-8, unicode-1-1;q=0.8");
+		//may be error but current??
+				soup_message_headers_append(msg->request_headers, "Referer",
+							*curr_base);
+			}
+			{
+				guint status = soup_session_send_message(session, msg);
+				*curr_base = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
+				if (status >= 200 && status < 300) {
+		    		*contentType =
+						(gchar*)soup_message_headers_get(msg->response_headers,
+							"Content-type");
+		    		{
+						const gchar *cookies =
+			    			soup_message_headers_get(msg->response_headers,
+								"Set-Cookie");
+
+						if (cookies)
+			    			cookies_storage_add(cookies_save, cookies, *curr_base);
+		    		}
+		    		buf = (gchar*)msg->response_body->data;
+		    		*length = msg->response_body->length;
+					return buf;
+				} else {
+		    		g_print("Status=%d\n", status);
+					return NULL;
+				}
+	    	}
+		}
+	}
+}
+
+gchar * convert_to_correct_name(gchar* base, gchar * url)
+{
+	return url;
 }
 
 /*receive content by static data from url*/
