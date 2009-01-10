@@ -14,10 +14,10 @@ void cookies_storage_add(cookies_storage storage,gchar* cookie, gchar * url)
 			   sizeof(gchar));
 			strcpy(new_cookies, *storage);
 			strncat(new_cookies, cookie, posend - cookie + 1);
-			g_print("NewCookies=%s\n", new_cookies);
 			old_cookies = *storage;
 			*storage = new_cookies;
 			free(old_cookies);
+			g_print("NewCookies=%s\n", *storage);
     }
 }
 

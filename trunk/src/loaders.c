@@ -1,6 +1,5 @@
 #include "loaders.h"
 #include <gio/gio.h>
-#include "cookies_storage.h"
 #include <libsoup/soup.h>
 /*unescape url*/
 gchar *
@@ -48,7 +47,7 @@ decode(const gchar * token)
 
 /*receive content by default loaders*/
 gchar *
-get_default_content(const gchar * action, gsize * length, gchar * contentType)
+get_default_content(const gchar * action, gsize * length, gchar ** contentType)
 {
     gchar *buf = NULL;
     GFile *fd = NULL;
@@ -73,11 +72,13 @@ get_default_content(const gchar * action, gsize * length, gchar * contentType)
  * encodind -- params for Get Or Post
  */
 gchar *
-get_http_content(const gchar * action, gsize * length, gchar * contentType, gchar* method, gchar* encoding,
-				 gchar** curr_base, cookies_storage cookies_save, SoupSession* session)
+get_http_content(const gchar * action, gsize * length, gchar ** contentType,
+				gchar* method, gchar* encoding, gchar** curr_base,
+				cookies_storage cookies_save, SoupSession* session)
 {
 	gchar * buf = NULL;	
 	SoupMessage *msg;
+	
     if (!strncmp(action, "http:", strlen("http:"))) {
 		/*Know methods!!*/
 		if (!strcmp(method, "POST") || !strcmp(method, "GET")) {
@@ -103,14 +104,15 @@ get_http_content(const gchar * action, gsize * length, gchar * contentType, gcha
 				soup_message_headers_append(msg->request_headers,
 					    "Accept-Charset",
 					    "UTF-8, unicode-1-1;q=0.8");
-		//may be error but current??
+				//may be error but current??
 				soup_message_headers_append(msg->request_headers, "Referer",
 							*curr_base);
 			}
 			{
 				guint status = soup_session_send_message(session, msg);
 				*curr_base = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
-				if (status >= 200 && status < 300) {
+				
+				if (status >= 200 && status < 300) {					
 		    		*contentType =
 						(gchar*)soup_message_headers_get(msg->response_headers,
 							"Content-type");
@@ -132,6 +134,7 @@ get_http_content(const gchar * action, gsize * length, gchar * contentType, gcha
 	    	}
 		}
 	}
+	return NULL;
 }
 
 gchar * convert_to_correct_name(gchar* base, gchar * url)
