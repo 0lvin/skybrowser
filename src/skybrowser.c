@@ -26,8 +26,8 @@ struct All_variable
 static void
 title_changed_cb(GtkHTML * html, const gchar * title, gpointer data)
 {
-    g_print("title_changed_cb=%s\n", title);
 	struct All_variable *variable = (struct All_variable *) data;
+	g_print("title_changed_cb=%s\n", title);
 	if( data != NULL )
 		gtk_window_set_title (GTK_WINDOW (variable->app), title);
 }
@@ -146,81 +146,27 @@ loadData(GtkHTML * html, char *realurl, const gchar * method,
     gchar *buf = NULL;
 
     size_t length = 0;
-
-    buf = get_data_content(action, &length, &ContentType);
-
-    if (!strncmp(realurl, "http:", strlen("http:"))) {
-	if (!strcmp(method, "POST") || !strcmp(method, "GET")) {
-	    if (!strcmp(method, "POST")) {
-		msg = soup_message_new("POST", realurl);
-		soup_message_set_request(msg,
-					 "application/x-www-form-urlencoded",
-					 SOUP_MEMORY_TAKE, (char *) encoding,
-					 strlen(encoding));
-	    }
-	    else if (!strcmp(method, "GET")) {
-		char *tmpstr = calloc(strlen(realurl) + strlen(encoding) + 2,
-				      sizeof(char));
-
-		strcpy(tmpstr, realurl);
-		if (*encoding != 0) {
-		    strcat(tmpstr, "?");
-		    strcat(tmpstr, encoding);
-		}
-		msg = soup_message_new("GET", tmpstr);
-		free(tmpstr);
-	    }
-	    {
-		guint status;
-
-		soup_message_headers_append(msg->request_headers, "Cookie",
-					    variable->saved_cookies);
-		soup_message_headers_append(msg->request_headers,
-					    "Accept-Charset",
-					    "UTF-8, unicode-1-1;q=0.8");
-		//may be error but current??
-		soup_message_headers_append(msg->request_headers, "Referer",
-					    gtk_html_get_base(html));
-		status = soup_session_send_message(variable->session, msg);
-		if (redirect_save == TRUE) {
-		    char *redirect_url =
-			soup_uri_to_string(soup_message_get_uri(msg), FALSE);
-		    if (strcmp(redirect_url, realurl)) {
-			g_print("Redirect %s\n", redirect_url);
-			free(change_html_base(html, redirect_url));	//url not need
-		    }
-		    free(redirect_url);
-		}
-		if (status >= 200 && status < 300) {
-		    ContentType =
-			(gchar*)soup_message_headers_get(msg->response_headers,
-						"Content-type");
-		    {
-			const gchar *cookies =
-			    soup_message_headers_get(msg->response_headers,
-						"Set-Cookie");
-
-			if (cookies)
-			    cookies_storage_add(&(variable->saved_cookies), cookies, gtk_html_get_base(html));
-		    }
-		    buf = (gchar*)msg->response_body->data;
-		    length = msg->response_body->length;
-		}
-		else {
-		    g_print("Status=%d\n", status);
-		}
-	    }
+	gchar* curr_base = g_strdup(gtk_html_get_base(html));
+    buf = get_data_content(realurl, &length, &ContentType);
+	if(buf==NULL)
+	{
+		gchar* curr_base_save = curr_base;
+		get_http_content(realurl, &length, &ContentType, method,
+				 encoding, &curr_base, &(variable->saved_cookies), variable->session);
+		if (redirect_save == TRUE)
+			free(change_html_base(html, curr_base));	//url not need
+		if(curr_base_save != curr_base)
+			free(curr_base_save);
 	}
-    }
     if (buf == NULL)
 		buf = get_default_content(realurl, &length, &ContentType);
     if (ContentType != NULL)
-	if (!strcmp(ContentType, "text/html"))
-	    ContentType = NULL;	//not correct encoding
+		if (!strcmp(ContentType, "text/html"))
+			ContentType = NULL;	//not correct encoding
     if (ContentType == NULL)
 	/*check html */
-	if (*buf == '<' || *buf == '\r' || *buf == '\n') {
-	    char *temp = strstr(buf, "text/html; ");
+		if (*buf == '<' || *buf == '\r' || *buf == '\n') {
+			char *temp = strstr(buf, "text/html; ");
 
 	    if (temp == NULL) {
 		ContentType = "text/html; charset=utf8";
