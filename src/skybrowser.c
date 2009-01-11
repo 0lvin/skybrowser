@@ -1,11 +1,6 @@
 #include <loaders.h>
-#include <sys/types.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <libsoup/soup.h>
-#include <sys/mman.h>
-#include <iconv.h>
+#include <gtkhtml/gtkhtml.h>
 
 /*Структур для хранения всех переменных*/
 struct All_variable
@@ -17,7 +12,7 @@ struct All_variable
     GtkWidget *window;
 #endif
     GtkWidget *entry;
-    gchar *saved_cookies;
+    cookies_storage* saved_cookies;
     /*текущая сесия, может нужно перенести в параметр обратного вызова */
     SoupSession *session;
 };
@@ -91,7 +86,7 @@ parsecurrent(const gchar * url, gchar ** current)
 		    *search = 0;
 		}
 	    }
-	strcat(path, url);
+		strcat(path, url);
     }
 
     if (strchr(path + strlen("http://"), '/') == NULL)
@@ -133,75 +128,50 @@ change_html_base(GtkHTML * html, const gchar * url)
 }
 
 static void
-loadData(GtkHTML * html, char *realurl, const gchar * method,
-	 const gchar * action, const gchar * encoding, GtkHTMLStream * stream,
-	 gpointer data, gboolean redirect_save, char *gotocharp)
+loadData(GtkHTML * html, const gchar *action, const gchar * method, 
+		const gchar * encoding, GtkHTMLStream * stream,
+		gpointer data, gboolean redirect_save)
 {
     struct All_variable *variable = (struct All_variable *) data;
 
     gchar *ContentType = NULL;
 
-    SoupMessage *msg;
-
     gchar *buf = NULL;
 
     size_t length = 0;
 	gchar* curr_base = g_strdup(gtk_html_get_base(html));
-    buf = get_data_content(realurl, &length, &ContentType);
-	if(buf==NULL)
-	{
-		gchar* curr_base_save = curr_base;
-		get_http_content(realurl, &length, &ContentType, method,
-				 encoding, &curr_base, &(variable->saved_cookies), variable->session);
-		if (redirect_save == TRUE)
-			free(change_html_base(html, curr_base));	//url not need
-		if(curr_base_save != curr_base)
-			free(curr_base_save);
-	}
-    if (buf == NULL)
-		buf = get_default_content(realurl, &length, &ContentType);
-    if (ContentType != NULL)
-		if (!strcmp(ContentType, "text/html"))
-			ContentType = NULL;	//not correct encoding
-    if (ContentType == NULL)
-	/*check html */
-		if (*buf == '<' || *buf == '\r' || *buf == '\n') {
-			char *temp = strstr(buf, "text/html; ");
-
-	    if (temp == NULL) {
-		ContentType = "text/html; charset=utf8";
-	    }
-	    else {
-		char *end = strchr(temp, '"');
-
-		if (end == NULL) {
-		    ContentType = "text/html; charset=utf8";
-		}
-		else {
-		    ContentType = calloc(end - temp + 1, sizeof(char));
-		    /*it not correct ContentType is const!!! */
-		    strncpy((char *) ContentType, temp, end - temp);
-		    g_print("new %s =%s\n", realurl, ContentType);
-		}
-	    }
-	}
 	
+	if (!strncmp(action, "data:", strlen("data:")))
+		buf = get_data_content(action, &length, &ContentType);
+		
+	if (!strncmp(action, "http:", strlen("http:")))
+		if(buf==NULL)
+		{
+			gchar* curr_base_save = curr_base;
+			get_http_content(action, &length, &ContentType, method,
+				 encoding, &curr_base, variable->saved_cookies, variable->session);
+			if (redirect_save == TRUE)
+				free(change_html_base(html, curr_base));	//url not need
+			if(curr_base_save != curr_base)
+				free(curr_base_save);
+		}
+		
+    if (buf == NULL)
+		buf = get_default_content(action, &length, &ContentType);
+		
     /* Enable change content type in engine */
     gtk_html_set_default_engine(html, TRUE);
 
     if (ContentType != NULL)
-	gtk_html_set_default_content_type(html, ContentType);
+		gtk_html_set_default_content_type(html, ContentType);
 
     if (buf != NULL) {
 		gtk_html_stream_write(stream, buf, length);
 		gtk_html_stream_close(stream, GTK_HTML_STREAM_OK);
     }
 
-    if (gotocharp)
-		change_position(html, gotocharp, data);
-
     if (buf != NULL)
-	g_free(buf);
+		g_free(buf);
 }
 
 
@@ -218,50 +188,53 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
     struct All_variable *variable = (struct All_variable *) data;
 
     g_print("variable=%x \n", variable);
+	
     if (data == NULL)
-	g_print("Eroor in file (%s) line (%d)", __FILE__, __LINE__);
+		g_print("Erorr in file (%s) line (%d)", __FILE__, __LINE__);
+		
     if (!strcmp(method, "GET") || !strcmp(method, "POST")) {
-	char *currpos;
+		char *currpos;
 
-	if (!strncmp(action, "file:", strlen("file:"))
-	    || !strncmp(action, "http:", strlen("http:"))) {
-	    realurl = calloc(strlen(action) + 1, sizeof(char));
-	    strcpy(realurl, action);
-	}
-	else {
-	    realurl =
-		(char *) calloc(strlen(action) +
-				strlen(gtk_html_get_base(html)) + 2,
-				sizeof(char));
-	    strcpy(realurl, gtk_html_get_base(html));
-	    if (*action == '/' && strlen(realurl) > 1)
-		if (*(realurl + strlen(realurl) - 1) == '/') {
-		    char *search = strchr(realurl + strlen("http://"), '/');
+		if (!strncmp(action, "file:", strlen("file:"))
+			|| !strncmp(action, "http:", strlen("http:"))) {
+			realurl = calloc(strlen(action) + 1, sizeof(char));
+			strcpy(realurl, action);
+		} else {
+			realurl =
+			(char *) calloc(strlen(action) +
+					strlen(gtk_html_get_base(html)) + 2,
+					sizeof(char));
+			strcpy(realurl, gtk_html_get_base(html));
+			if (*action == '/' && strlen(realurl) > 1)
+				if (*(realurl + strlen(realurl) - 1) == '/') {
+					char *search = strchr(realurl + strlen("http://"), '/');
 
-		    g_print("search=%s\n", search);
-		    *search = 0;
-		    /*realurl[strlen(realurl)-1]=0; */
+					g_print("search=%s\n", search);
+					*search = 0;
+					/*realurl[strlen(realurl)-1]=0; */
+				}
+				strcat(realurl, action);
 		}
-	    strcat(realurl, action);
-	}
-	g_print("submitting '%s' to '%s' using method '%s' by '%s' \n",
-		encoding, action, method, realurl);
-	currpos = realurl;
-	while (*currpos != 0) {
-	    if (*currpos == '?')
-		break;
-	    if (*currpos == '#') {
-		*currpos = 0;
-		gotocharp = currpos + 1;
-		break;
-	    }
-	    currpos++;
-	}
-	loadData(html, realurl, method, action, encoding, stream, data,
-		 redirect_save, gotocharp);
-    }
-    else {
-	g_print("Unknow Metod for url '%s'", realurl);
+		g_print("submitting '%s' to '%s' using method '%s' by '%s' \n",
+			encoding, action, method, realurl);
+		currpos = realurl;
+		while (*currpos != 0) {
+			if (*currpos == '?')
+				break;
+			if (*currpos == '#') {
+				*currpos = 0;
+				gotocharp = currpos + 1;
+				break;
+			}
+			currpos++;
+		}
+		loadData(html, realurl, method, encoding, stream, data,
+			redirect_save);
+	
+		if (gotocharp)
+			change_position(html, gotocharp, data);
+    } else {
+		g_print("Unknow Metod for url '%s'", realurl);
     }
     free(realurl);
 }
@@ -429,7 +402,7 @@ main(int argc, char **argv)
 
     g_print("variable=%x \n", variable);
     g_print("variable->session=%x \n", variable->session);
-    variable->saved_cookies = calloc(1, sizeof(char));
+    variable->saved_cookies = cookies_storage_new ();
     gtk_entry_set_text((GtkEntry *) (variable->entry),
 		       argc > 1 ? argv[1] : "http://gnome.org");
     on_entry_changed(variable->entry, variable);

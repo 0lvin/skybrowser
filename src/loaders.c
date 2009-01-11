@@ -1,6 +1,8 @@
 #include "loaders.h"
 #include <gio/gio.h>
 #include <libsoup/soup.h>
+#include <string.h>
+#include <config.h>
 /*unescape url*/
 gchar *
 decode(const gchar * token)
@@ -67,14 +69,12 @@ get_default_content(const gchar * action, gsize * length, gchar ** contentType)
     return buf;
 }
 
-///my crazy world!!!!
 /*
  * encodind -- params for Get Or Post
  */
-gchar *
-get_http_content(const gchar * action, gsize * length, gchar ** contentType,
+gchar * get_http_content(const gchar * action, gsize * length, gchar ** contentType,
 				gchar* method, gchar* encoding, gchar** curr_base,
-				cookies_storage cookies_save, SoupSession* session)
+				cookies_storage* cookies_save, SoupSession* session)
 {
 	gchar * buf = NULL;	
 	SoupMessage *msg;
@@ -104,7 +104,7 @@ get_http_content(const gchar * action, gsize * length, gchar ** contentType,
 				soup_message_headers_append(msg->request_headers,
 					    "Accept-Charset",
 					    "UTF-8, unicode-1-1;q=0.8");
-				//may be error but current??
+				/*may be error but current?*/
 				soup_message_headers_append(msg->request_headers, "Referer",
 							*curr_base);
 			}
