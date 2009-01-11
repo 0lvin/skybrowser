@@ -72,7 +72,8 @@ get_default_content(const gchar * action, gsize * length, gchar ** contentType)
 /*
  * encodind -- params for Get Or Post
  */
-gchar * get_http_content(const gchar * action, gsize * length, gchar ** contentType,
+gchar *
+get_http_content(const gchar * action, gsize * length, gchar ** contentType,
 				gchar* method, gchar* encoding, gchar** curr_base,
 				cookies_storage* cookies_save, SoupSession* session)
 {
