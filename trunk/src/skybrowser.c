@@ -1,7 +1,7 @@
 #include <loaders.h>
 #include <stdlib.h>
 #include <gtkhtml/gtkhtml.h>
-
+//#define DebugVariable
 /*Структур для хранения всех переменных*/
 struct All_variable
 {
@@ -56,8 +56,9 @@ change_position(GtkHTML * html, const gchar * position, gpointer data)
     g_print("Fix Me goto position '%s' in html not implemented\n", position);
 }
 
-//Разобрать и установить путь по умолчанию
-static char *
+
+/*Разобрать и установить путь по умолчанию*/
+/*static char *
 parsecurrent(const gchar * url, gchar ** current)
 {
     char *path;
@@ -109,24 +110,7 @@ parsecurrent(const gchar * url, gchar ** current)
 		g_print("->current='%s' url='%s'\n", *current, tmpstr);
 		return tmpstr;
 }
-
-//установка текущей html base
-static char *
-change_html_base(GtkHTML * html, const gchar * url)
-{
-    char *tmpstr;
-
-    char *current;
-
-    current = calloc(strlen(gtk_html_get_base(html)) + 1, sizeof(char));
-    strcpy(current, gtk_html_get_base(html));
-    tmpstr = parsecurrent(url, &current);
-	g_print("change htmlbase(change_html_base) to %s\n",current);
-    gtk_html_set_base(html, current);
-    free(current);
-    return tmpstr;
-}
-
+*/
 static void
 loadData(GtkHTML * html, const gchar *action, const gchar * method, 
 		const gchar * encoding, GtkHTMLStream * stream,
@@ -145,15 +129,18 @@ loadData(GtkHTML * html, const gchar *action, const gchar * method,
 		buf = get_data_content(action, &length, &ContentType);
 		
 	if (!strncmp(action, "http:", strlen("http:")))
-		if(buf==NULL)
+		if(buf == NULL)
 		{
 			gchar* curr_base_save = curr_base;
-			get_http_content(action, &length, &ContentType, method,
+			buf = get_http_content(action, &length, &ContentType, method,
 				 encoding, &curr_base, variable->saved_cookies, variable->session);
-			if (redirect_save == TRUE)
-				free(change_html_base(html, curr_base));	//url not need
-			if(curr_base_save != curr_base)
-				free(curr_base_save);
+			if( buf != NULL)
+			{
+				if (redirect_save == TRUE)
+					gtk_html_set_base (html, curr_base);
+				if(curr_base_save != curr_base)
+					free(curr_base_save);
+			}
 		}
 		
     if (buf == NULL)
@@ -186,15 +173,18 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
     char *gotocharp = NULL;
 
     struct All_variable *variable = (struct All_variable *) data;
-
+#ifdef DebugVariable
     g_print("variable=%x \n", variable);
 	
     if (data == NULL)
 		g_print("Erorr in file (%s) line (%d)", __FILE__, __LINE__);
-		
+#endif
     if (!strcmp(method, "GET") || !strcmp(method, "POST")) {
 		char *currpos;
-
+		/*!strncmp(url, "http:", strlen("http:")) ||
+		!strncmp(url, "https:", strlen("https:")) ||
+		!strncmp(url, "ftp:", strlen("ftp:")) ||
+		!strncmp(url, "file:", strlen("file:"))*/
 		if (!strncmp(action, "file:", strlen("file:"))
 			|| !strncmp(action, "http:", strlen("http:"))) {
 			realurl = calloc(strlen(action) + 1, sizeof(char));
@@ -269,11 +259,8 @@ on_link_clicked(GtkHTML * html, const gchar * url, gpointer data)
 				}
     {
 		GtkHTMLStream *stream = gtk_html_begin_content(html, "");
-
-		char *tmpstr = change_html_base(html, url);
-
-		getdata(html, "GET", tmpstr, "", stream, data, TRUE);
-		free(tmpstr);
+		gtk_html_set_base (html, url);
+		getdata(html, "GET", url, "", stream, data, TRUE);
     }
 }
 
@@ -291,10 +278,12 @@ static gboolean
 on_exit_window(GtkWidget * window, gpointer data)
 {
     struct All_variable *variable = (struct All_variable *) data;
+#ifdef DebugVariable
     g_print("variable=%x \n", variable);
     g_print("variable->session=%x \n", variable->session);
     if (data == NULL)
 		g_print("Eroor in file (%s) line (%d)", __FILE__, __LINE__);
+#endif
 	if( variable->session != NULL)
 		soup_session_abort(variable->session);
     gtk_main_quit();
@@ -319,12 +308,13 @@ static void
 on_entry_changed(GtkWidget * widget, gpointer data)
 {
     struct All_variable *variable = (struct All_variable *) data;
-
+#ifdef DebugVariable
     g_print("variable=%x \n", variable);
     g_print("variable->session=%x \n", variable->session);
     if (data == NULL)
-	g_print("Erorr in file (%s) line (%d)", __FILE__, __LINE__);
-    g_print("%s\n", gtk_entry_get_text(GTK_ENTRY(widget)));
+		g_print("Erorr in file (%s) line (%d)", __FILE__, __LINE__);
+#endif
+    g_print("on_entry_changed:%s\n", gtk_entry_get_text(GTK_ENTRY(widget)));
     on_link_clicked(GTK_HTML(variable->html),
 		    gtk_entry_get_text(GTK_ENTRY(widget)), data);
 }
@@ -399,12 +389,13 @@ main(int argc, char **argv)
 		gtk_html_set_base(GTK_HTML(variable->html), tmpstr);
 		g_free(tmpstr);
     }
-
+#ifdef DebugVariable
     g_print("variable=%x \n", variable);
     g_print("variable->session=%x \n", variable->session);
+#endif
     variable->saved_cookies = cookies_storage_new ();
     gtk_entry_set_text((GtkEntry *) (variable->entry),
-		       argc > 1 ? argv[1] : "http://gnome.org");
+		       argc > 1 ? argv[1] : "http://google.com");
     on_entry_changed(variable->entry, variable);
     /* run the main loop */
     gtk_main();
