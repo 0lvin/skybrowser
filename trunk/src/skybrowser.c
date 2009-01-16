@@ -168,7 +168,7 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 	const gchar * encoding, GtkHTMLStream * stream, gpointer data,
 	gboolean redirect_save)
 {
-    char *realurl;
+    gchar *realurl;
 
     char *gotocharp = NULL;
 
@@ -178,36 +178,69 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 	
     if (data == NULL)
 		g_print("Erorr in file (%s) line (%d)", __FILE__, __LINE__);
-#endif
+#endif	
     if (!strcmp(method, "GET") || !strcmp(method, "POST")) {
 		char *currpos;
-		/*!strncmp(url, "http:", strlen("http:")) ||
-		!strncmp(url, "https:", strlen("https:")) ||
-		!strncmp(url, "ftp:", strlen("ftp:")) ||
-		!strncmp(url, "file:", strlen("file:"))*/
-		if (!strncmp(action, "file:", strlen("file:"))
-			|| !strncmp(action, "http:", strlen("http:"))) {
-			realurl = calloc(strlen(action) + 1, sizeof(char));
-			strcpy(realurl, action);
+		const gchar * baseurl = gtk_html_get_base(html);
+		if (
+			!strncmp(action, "http:",  strlen("http:"))  ||
+			!strncmp(action, "https:", strlen("https:")) ||
+			!strncmp(action, "ftp:",   strlen("ftp:"))   ||
+			!strncmp(action, "file:",  strlen("file:"))  ||
+			!strncmp(action, "data:",  strlen("data:"))  ||
+			baseurl == NULL/*unknow base url*/
+		) {
+			/*all right it's full url*/
+			realurl = g_strdup(action);
 		} else {
+			
+			g_print("received %s %s \r\n",action,baseurl);
 			realurl =
-			(char *) calloc(strlen(action) +
-					strlen(gtk_html_get_base(html)) + 2,
-					sizeof(char));
-			strcpy(realurl, gtk_html_get_base(html));
-			if (*action == '/' && strlen(realurl) > 1)
-				if (*(realurl + strlen(realurl) - 1) == '/') {
-					char *search = strchr(realurl + strlen("http://"), '/');
-
-					g_print("search=%s\n", search);
-					*search = 0;
-					/*realurl[strlen(realurl)-1]=0; */
+				(gchar *) g_new(gchar,
+						strlen(action) +
+						strlen(baseurl) + 4);
+			strncpy(realurl, baseurl,strlen(baseurl));
+			if(0)
+			{
+			/*contein slash - is path from domain*/
+			if (*action == '/' && strlen(realurl) > 1){
+				/*fing first '//' (as example file://) */
+				gchar* startdomain = strstr(realurl,"//");
+				if(startdomain != NULL){
+					/* 2 -- length '//' */
+					startdomain +=2 ;
+					gchar* enddomain = strchr(startdomain,'/');
+					if(enddomain == NULL)
+						enddomain = startdomain;
+					strcat(startdomain, action);
 				}
-				strcat(realurl, action);
-		}
+			} else {
+				/*not started from slash*/
+				gchar * from = realurl;
+				/*search '?'*/
+				gchar * lastqu = strchr(from,'?');
+				if(lastqu != NULL)
+					from = lastqu;
+				/*search '#'*/
+				gchar * lastn = strchr(from,'#');
+				if(lastn != NULL)
+					from = lastn;
+				/*search '/'*/
+				gchar * lastslash = strrchr(from,'/');
+				if(lastslash == NULL)
+				{
+					lastslash = from + strlen(from);
+					/*add slash on end string*/
+					*lastslash = '/';
+				}
+				strcat(lastslash,action);
+			}
+			}
+		}		
 		g_print("submitting '%s' to '%s' using method '%s' by '%s' \n",
 			encoding, action, method, realurl);
 		currpos = realurl;
+		/*split by '?'*/
 		while (*currpos != 0) {
 			if (*currpos == '?')
 				break;
@@ -218,6 +251,7 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 			}
 			currpos++;
 		}
+		/* load data*/
 		loadData(html, realurl, method, encoding, stream, data,
 			redirect_save);
 	
@@ -395,7 +429,7 @@ main(int argc, char **argv)
 #endif
     variable->saved_cookies = cookies_storage_new ();
     gtk_entry_set_text((GtkEntry *) (variable->entry),
-		       argc > 1 ? argv[1] : "http://google.com");
+		       argc > 1 ? argv[1] : "http://mail.ru");
     on_entry_changed(variable->entry, variable);
     /* run the main loop */
     gtk_main();
