@@ -1,5 +1,5 @@
 #include "cookies_storage.h"
-//#define DebugCookies
+#define DebugCookies
 #include <gobject/gvaluecollector.h>
 
 #define COOKIES_VALUE_SIZE 256
