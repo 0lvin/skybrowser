@@ -70,8 +70,9 @@ loadData(GtkHTML * html, const gchar *action, const gchar * method,
     gchar *buf = NULL;
 
     size_t length = 0;
-	gchar* curr_base = g_strdup(gtk_html_get_base(html));
 	
+	gchar* curr_base = g_strdup(gtk_html_get_base(html));
+	loaders_init_soap (loaders_e , variable->saved_cookies, variable->session);
 	if (!strncmp(action, "data:", strlen("data:")))
 		buf = loaders_data_content(loaders_e, action, &length, &ContentType);
 		
@@ -80,7 +81,7 @@ loadData(GtkHTML * html, const gchar *action, const gchar * method,
 		{
 			gchar* curr_base_save = curr_base;
 			buf = loaders_http_content(loaders_e, action, &length, &ContentType, method,
-				 encoding, &curr_base, variable->saved_cookies, variable->session);
+				 encoding, &curr_base);
 			if( buf != NULL)
 			{
 				if (redirect_save == TRUE)
