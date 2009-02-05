@@ -102,7 +102,6 @@ loadData(GtkHTML * html, const gchar *action, const gchar * method,
     
 		gtk_html_stream_write(stream, buf, length);
 		gtk_html_stream_close(stream, GTK_HTML_STREAM_OK);
-		g_free(buf);
     }
 }
 
