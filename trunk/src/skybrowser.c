@@ -1,7 +1,7 @@
-#include <loaders.h>
 #include <stdlib.h>
 #include <gtkhtml/gtkhtml.h>
-//#define DebugVariable
+#include "loaders.h"
+/*#define DebugVariable*/
 /*Структур для хранения всех переменных*/
 struct All_variable
 {
@@ -56,68 +56,15 @@ change_position(GtkHTML * html, const gchar * position, gpointer data)
     g_print("Fix Me goto position '%s' in html not implemented\n", position);
 }
 
-
-/*Разобрать и установить путь по умолчанию*/
-/*static char *
-parsecurrent(const gchar * url, gchar ** current)
-{
-    char *path;
-
-    int len;
-
-    char *tmpstr;
-
-    g_print("current='%s' url='%s'->\n", *current, url);
-    path = calloc(strlen(*current) + strlen(url) + 2, sizeof(char));
-    if (
-		!strncmp(url, "http:", strlen("http:")) ||
-		!strncmp(url, "https:", strlen("https:")) ||
-		!strncmp(url, "ftp:", strlen("ftp:")) ||
-		!strncmp(url, "file:", strlen("file:"))
-		) {
-			strncpy(path, url, strlen(url));
-		} else {
-			strcpy(path, *current);
-	if (*url == '/' && strlen(path) > 1)
-	    if (*(path + strlen(path) - 1) == '/') {
-		char *search = strchr(path + strlen("http://"), '/');
-
-		if (search != NULL) {
-		    g_print("searc=%s\n", search);
-		    *search = 0;
-		}
-	    }
-		strcat(path, url);
-    }
-
-    if (strchr(path + strlen("http://"), '/') == NULL)
-		strcat(path, "/");
-		g_print("full url=%s\n", path);
-		len = strcspn(path, "?#");
-		while (*(path + len) != '/') {
-			if (len == 0)
-				break;
-			len--;
-		}
-		free(*current);
-
-		*current = calloc(len + 1 + 1, sizeof(char));
-		strncpy(*current, path, len + 1);
-		(*current)[len + 1] = 0;
-		tmpstr = calloc(strlen(path + len + 1) + 1, sizeof(char));
-		strcpy(tmpstr, path + len + 1);
-		free(path);
-		g_print("->current='%s' url='%s'\n", *current, tmpstr);
-		return tmpstr;
-}
-*/
 static void
 loadData(GtkHTML * html, const gchar *action, const gchar * method, 
 		const gchar * encoding, GtkHTMLStream * stream,
 		gpointer data, gboolean redirect_save)
 {
     struct All_variable *variable = (struct All_variable *) data;
-
+	
+	loaders *loaders_e = loaders_ref(loaders_new());
+	
     gchar *ContentType = NULL;
 
     gchar *buf = NULL;
@@ -126,13 +73,13 @@ loadData(GtkHTML * html, const gchar *action, const gchar * method,
 	gchar* curr_base = g_strdup(gtk_html_get_base(html));
 	
 	if (!strncmp(action, "data:", strlen("data:")))
-		buf = get_data_content(action, &length, &ContentType);
+		buf = loaders_data_content(loaders_e, action, &length, &ContentType);
 		
 	if (!strncmp(action, "http:", strlen("http:")))
 		if(buf == NULL)
 		{
 			gchar* curr_base_save = curr_base;
-			buf = get_http_content(action, &length, &ContentType, method,
+			buf = loaders_http_content(loaders_e, action, &length, &ContentType, method,
 				 encoding, &curr_base, variable->saved_cookies, variable->session);
 			if( buf != NULL)
 			{
@@ -144,21 +91,19 @@ loadData(GtkHTML * html, const gchar *action, const gchar * method,
 		}
 		
     if (buf == NULL)
-		buf = get_default_content(action, &length, &ContentType);
-		
-    /* Enable change content type in engine */
-    gtk_html_set_default_engine(html, TRUE);
+		buf = loaders_default_content(loaders_e, action, &length, &ContentType);
+	
+	if (buf != NULL) {
+    	/* Enable change content type in engine */
+    	gtk_html_set_default_engine(html, TRUE);
 
-    if (ContentType != NULL)
-		gtk_html_set_default_content_type(html, ContentType);
-
-    if (buf != NULL) {
+    	if (ContentType != NULL)
+			gtk_html_set_default_content_type(html, ContentType);
+    
 		gtk_html_stream_write(stream, buf, length);
 		gtk_html_stream_close(stream, GTK_HTML_STREAM_OK);
-    }
-
-    if (buf != NULL)
 		g_free(buf);
+    }
 }
 
 
@@ -173,15 +118,21 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
     char *gotocharp = NULL;
 
     struct All_variable *variable = (struct All_variable *) data;
+	
 #ifdef DebugVariable
     g_print("variable=%x \n", variable);
 	
     if (data == NULL)
-		g_print("Erorr in file (%s) line (%d)", __FILE__, __LINE__);
+		g_print("Erorr in file (%s) line (%d)\n", __FILE__, __LINE__);
+	if (action == NULL)
+		g_print("Erorr in file (%s) line (%d)\n", __FILE__, __LINE__);
 #endif	
+
     if (!strcmp(method, "GET") || !strcmp(method, "POST")) {
 		char *currpos;
 		const gchar * baseurl = gtk_html_get_base(html);
+		if ( baseurl == NULL)
+			baseurl = g_strdup("");
 		if (
 			!strncmp(action, "http:",  strlen("http:"))  ||
 			!strncmp(action, "https:", strlen("https:")) ||
@@ -192,8 +143,7 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 		) {
 			/*all right it's full url*/
 			realurl = g_strdup(action);
-		} else {
-			
+		} else {			
 			g_print("received %s %s \r\n",action,baseurl);
 			realurl =
 				(gchar *) g_new(gchar,

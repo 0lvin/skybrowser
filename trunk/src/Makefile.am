@@ -13,5 +13,5 @@ LDADD = $(SOUP_LIBS)                    \
 
 bin_PROGRAMS = skybrowser
 
-skybrowser_SOURCES = skybrowser.c loaders.c cookies_storage.c
+skybrowser_SOURCES = cookies_storage.c loaders.c skybrowser.c
 
