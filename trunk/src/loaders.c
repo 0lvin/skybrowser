@@ -7,7 +7,8 @@
 #include <config.h>
 
 struct _loadersPrivate {
-	char* local;
+	cookies_storage* cookies_save;
+	SoupSession* session;
 };
 
 #define LOADERS_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TYPE_LOADERS, loadersPrivate))
@@ -19,14 +20,14 @@ static void loaders_finalize (loaders* obj);
 
 
 
-void loaders_setSoap (loaders* self, const char* Soap) {
-	char* _tmp1;
-	const char* _tmp0;
+void loaders_init_soap (loaders* self, const cookies_storage* cookies_save,const SoupSession* session) {
 	g_return_if_fail (self != NULL);
-	g_return_if_fail (Soap != NULL);
-	_tmp1 = NULL;
-	_tmp0 = NULL;
-	self->priv->local = (_tmp1 = (_tmp0 = Soap, (_tmp0 == NULL) ? NULL : g_strdup (_tmp0)), self->priv->local = (g_free (self->priv->local), NULL), _tmp1);
+	g_return_if_fail (session != NULL);
+	g_return_if_fail (cookies_save != NULL);	
+	if(self->priv->cookies_save != NULL)
+		cookies_storage_unref(self->priv->cookies_save);
+	self->priv->cookies_save = cookies_storage_ref(cookies_save);
+	self->priv->session  = session;
 }
 
 /*unescape url*/
@@ -77,8 +78,7 @@ decode(const gchar * token)
  * encodind -- params for Get Or Post
  */
 gchar* loaders_http_content (loaders* self, 	const gchar * action, gsize * length, gchar ** contentType,
-				gchar* method, gchar* encoding, gchar** curr_base,
-				cookies_storage* cookies_save, SoupSession* session) {
+				gchar* method, gchar* encoding, gchar** curr_base) {
 	g_return_val_if_fail (self != NULL, NULL);
 	g_return_val_if_fail (action != NULL, NULL);
 	g_return_val_if_fail (contentType != NULL, NULL);
@@ -106,7 +106,7 @@ gchar* loaders_http_content (loaders* self, 	const gchar * action, gsize * lengt
 	    	}			
 	    	{			
 				/*soup_message_headers_append(msg->request_headers, "Cookie",
-						cookies_storage_get(cookies_save, action));*/
+						cookies_storage_get(self->priv->cookies_save, action));*/
 				soup_message_headers_append(msg->request_headers,
 					    "Accept-Charset",
 					    "UTF-8, unicode-1-1;q=0.8");
@@ -115,7 +115,7 @@ gchar* loaders_http_content (loaders* self, 	const gchar * action, gsize * lengt
 							*curr_base);
 			}
 			{
-				guint status = soup_session_send_message(session, msg);
+				guint status = soup_session_send_message(self->priv->session, msg);
 				*curr_base = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
 				
 				if (status >= 200 && status < 300) {					
@@ -128,7 +128,7 @@ gchar* loaders_http_content (loaders* self, 	const gchar * action, gsize * lengt
 								"Set-Cookie");
 
 						/*if (cookies)
-			    			cookies_storage_add(cookies_save, cookies, *curr_base);*/
+			    			cookies_storage_add(self->priv->cookies_save, cookies, *curr_base);*/
 		    		}
 		    		buf = (gchar*)msg->response_body->data;
 		    		*length = msg->response_body->length;
@@ -328,7 +328,9 @@ static void loaders_instance_init (loaders * self) {
 static void loaders_finalize (loaders* obj) {
 	loaders * self;
 	self = LOADERS (obj);
-	self->priv->local = (g_free (self->priv->local), NULL);
+	if(self->priv->cookies_save != NULL)
+		cookies_storage_unref(self->priv->cookies_save);
+	self->priv->cookies_save = NULL;
 }
 
 
