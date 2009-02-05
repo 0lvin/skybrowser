@@ -1,8 +1,34 @@
+
 #include "loaders.h"
+#include <gobject/gvaluecollector.h>
 #include <gio/gio.h>
 #include <libsoup/soup.h>
 #include <string.h>
 #include <config.h>
+
+struct _loadersPrivate {
+	char* local;
+};
+
+#define LOADERS_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TYPE_LOADERS, loadersPrivate))
+enum  {
+	LOADERS_DUMMY_PROPERTY
+};
+static gpointer loaders_parent_class = NULL;
+static void loaders_finalize (loaders* obj);
+
+
+
+void loaders_setSoap (loaders* self, const char* Soap) {
+	char* _tmp1;
+	const char* _tmp0;
+	g_return_if_fail (self != NULL);
+	g_return_if_fail (Soap != NULL);
+	_tmp1 = NULL;
+	_tmp0 = NULL;
+	self->priv->local = (_tmp1 = (_tmp0 = Soap, (_tmp0 == NULL) ? NULL : g_strdup (_tmp0)), self->priv->local = (g_free (self->priv->local), NULL), _tmp1);
+}
+
 /*unescape url*/
 gchar *
 decode(const gchar * token)
@@ -47,36 +73,15 @@ decode(const gchar * token)
     return resulted;
 }
 
-/*receive content by default loaders*/
-gchar *
-get_default_content(const gchar * action, gsize * length, gchar ** contentType)
-{
-    gchar *buf = NULL;
-    GFile *fd = NULL;
-    GError *result = NULL;
-
-    fd = g_file_new_for_uri(action);
-
-    g_file_load_contents(fd, NULL, &buf, length, NULL, &result);
-
-    if (buf == NULL) {
-		static gchar html_source[] = "<html><body>Error while read file</body><html>";
-		buf = g_strdup(html_source);
-		*length = strlen(html_source);
-    }
-
-    g_object_unref(fd);
-    return buf;
-}
-
 /*
  * encodind -- params for Get Or Post
  */
-gchar *
-get_http_content(const gchar * action, gsize * length, gchar ** contentType,
+gchar* loaders_http_content (loaders* self, 	const gchar * action, gsize * length, gchar ** contentType,
 				gchar* method, gchar* encoding, gchar** curr_base,
-				cookies_storage* cookies_save, SoupSession* session)
-{
+				cookies_storage* cookies_save, SoupSession* session) {
+	g_return_val_if_fail (self != NULL, NULL);
+	g_return_val_if_fail (action != NULL, NULL);
+	g_return_val_if_fail (contentType != NULL, NULL);
 	gchar * buf = NULL;	
 	SoupMessage *msg;
 	
@@ -138,16 +143,13 @@ get_http_content(const gchar * action, gsize * length, gchar ** contentType,
 	return NULL;
 }
 
-gchar * convert_to_correct_name(gchar* base, gchar * url)
-{
-	return url;
-}
-
 /*receive content by static data from url*/
-gchar *
-get_data_content(const gchar * action, gsize * length, gchar ** contentType)
-{
-    guchar *buf = NULL;
+gchar* loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType) {
+	g_return_val_if_fail (self != NULL, NULL);
+	g_return_val_if_fail (action != NULL, NULL);
+	g_return_val_if_fail (length != NULL, NULL);
+	g_return_val_if_fail (contentType != NULL, NULL);
+	guchar *buf = NULL;
     if (!strncmp(action, "data:", strlen("data:"))) {
 		const gchar *real_action = action + strlen("data:");
 		const gchar *start_data = strchr(real_action, ';');
@@ -176,4 +178,185 @@ get_data_content(const gchar * action, gsize * length, gchar ** contentType)
 		}
     }
     return (gchar *)buf;
+	
+}
+
+/*receive content by default loaders*/
+gchar* loaders_default_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType) {
+	g_return_val_if_fail (self != NULL, NULL);
+	g_return_val_if_fail (action != NULL, NULL);
+	g_return_val_if_fail (length != NULL, NULL);
+	g_return_val_if_fail (contentType != NULL, NULL);
+	
+	gchar *buf = NULL;
+    GFile *fd = NULL;
+    GError *result = NULL;
+
+    fd = g_file_new_for_uri(action);
+
+    g_file_load_contents(fd, NULL, &buf, length, NULL, &result);
+
+    if (buf == NULL) {
+		static gchar html_source[] = "<html><body>Error while read file</body><html>";
+		buf = g_strdup(html_source);
+		*length = strlen(html_source);
+    }
+
+    g_object_unref(fd);
+    return buf;
+}
+
+
+loaders* loaders_construct (GType object_type) {
+	loaders* self;
+	self = (loaders*) g_type_create_instance (object_type);
+	return self;
+}
+
+
+loaders* loaders_new (void) {
+	return loaders_construct (TYPE_LOADERS);
+}
+
+
+static void value_loaders_init (GValue* value) {
+	value->data[0].v_pointer = NULL;
+}
+
+
+static void value_loaders_free_value (GValue* value) {
+	if (value->data[0].v_pointer) {
+		loaders_unref (value->data[0].v_pointer);
+	}
+}
+
+
+static void value_loaders_copy_value (const GValue* src_value, GValue* dest_value) {
+	if (src_value->data[0].v_pointer) {
+		dest_value->data[0].v_pointer = loaders_ref (src_value->data[0].v_pointer);
+	} else {
+		dest_value->data[0].v_pointer = NULL;
+	}
+}
+
+
+static gpointer value_loaders_peek_pointer (const GValue* value) {
+	return value->data[0].v_pointer;
+}
+
+
+static gchar* value_loaders_collect_value (GValue* value, guint n_collect_values, GTypeCValue* collect_values, guint collect_flags) {
+	if (collect_values[0].v_pointer) {
+		loaders* object;
+		object = collect_values[0].v_pointer;
+		if (object->parent_instance.g_class == NULL) {
+			return g_strconcat ("invalid unclassed object pointer for value type `", G_VALUE_TYPE_NAME (value), "'", NULL);
+		} else if (!g_value_type_compatible (G_TYPE_FROM_INSTANCE (object), G_VALUE_TYPE (value))) {
+			return g_strconcat ("invalid object type `", g_type_name (G_TYPE_FROM_INSTANCE (object)), "' for value type `", G_VALUE_TYPE_NAME (value), "'", NULL);
+		}
+		value->data[0].v_pointer = loaders_ref (object);
+	} else {
+		value->data[0].v_pointer = NULL;
+	}
+	return NULL;
+}
+
+
+static gchar* value_loaders_lcopy_value (const GValue* value, guint n_collect_values, GTypeCValue* collect_values, guint collect_flags) {
+	loaders** object_p;
+	object_p = collect_values[0].v_pointer;
+	if (!object_p) {
+		return g_strdup_printf ("value location for `%s' passed as NULL", G_VALUE_TYPE_NAME (value));
+	}
+	if (!value->data[0].v_pointer) {
+		*object_p = NULL;
+	} else if (collect_flags && G_VALUE_NOCOPY_CONTENTS) {
+		*object_p = value->data[0].v_pointer;
+	} else {
+		*object_p = loaders_ref (value->data[0].v_pointer);
+	}
+	return NULL;
+}
+
+
+GParamSpec* param_spec_loaders (const gchar* name, const gchar* nick, const gchar* blurb, GType object_type, GParamFlags flags) {
+	ParamSpecloaders* spec;
+	g_return_val_if_fail (g_type_is_a (object_type, TYPE_LOADERS), NULL);
+	spec = g_param_spec_internal (G_TYPE_PARAM_OBJECT, name, nick, blurb, flags);
+	G_PARAM_SPEC (spec)->value_type = object_type;
+	return G_PARAM_SPEC (spec);
+}
+
+
+gpointer value_get_loaders (const GValue* value) {
+	g_return_val_if_fail (G_TYPE_CHECK_VALUE_TYPE (value, TYPE_LOADERS), NULL);
+	return value->data[0].v_pointer;
+}
+
+
+void value_set_loaders (GValue* value, gpointer v_object) {
+	loaders* old;
+	g_return_if_fail (G_TYPE_CHECK_VALUE_TYPE (value, TYPE_LOADERS));
+	old = value->data[0].v_pointer;
+	if (v_object) {
+		g_return_if_fail (G_TYPE_CHECK_INSTANCE_TYPE (v_object, TYPE_LOADERS));
+		g_return_if_fail (g_value_type_compatible (G_TYPE_FROM_INSTANCE (v_object), G_VALUE_TYPE (value)));
+		value->data[0].v_pointer = v_object;
+		loaders_ref (value->data[0].v_pointer);
+	} else {
+		value->data[0].v_pointer = NULL;
+	}
+	if (old) {
+		loaders_unref (old);
+	}
+}
+
+
+static void loaders_class_init (loadersClass * klass) {
+	loaders_parent_class = g_type_class_peek_parent (klass);
+	LOADERS_CLASS (klass)->finalize = loaders_finalize;
+	g_type_class_add_private (klass, sizeof (loadersPrivate));
+}
+
+
+static void loaders_instance_init (loaders * self) {
+	self->priv = LOADERS_GET_PRIVATE (self);
+	self->ref_count = 1;
+}
+
+
+static void loaders_finalize (loaders* obj) {
+	loaders * self;
+	self = LOADERS (obj);
+	self->priv->local = (g_free (self->priv->local), NULL);
+}
+
+
+GType loaders_get_type (void) {
+	static GType loaders_type_id = 0;
+	if (loaders_type_id == 0) {
+		static const GTypeValueTable g_define_type_value_table = { value_loaders_init, value_loaders_free_value, value_loaders_copy_value, value_loaders_peek_pointer, "p", value_loaders_collect_value, "p", value_loaders_lcopy_value };
+		static const GTypeInfo g_define_type_info = { sizeof (loadersClass), (GBaseInitFunc) NULL, (GBaseFinalizeFunc) NULL, (GClassInitFunc) loaders_class_init, (GClassFinalizeFunc) NULL, NULL, sizeof (loaders), 0, (GInstanceInitFunc) loaders_instance_init, &g_define_type_value_table };
+		static const GTypeFundamentalInfo g_define_type_fundamental_info = { (G_TYPE_FLAG_CLASSED | G_TYPE_FLAG_INSTANTIATABLE | G_TYPE_FLAG_DERIVABLE | G_TYPE_FLAG_DEEP_DERIVABLE) };
+		loaders_type_id = g_type_register_fundamental (g_type_fundamental_next (), "loaders", &g_define_type_info, &g_define_type_fundamental_info, 0);
+	}
+	return loaders_type_id;
+}
+
+
+gpointer loaders_ref (gpointer instance) {
+	loaders* self;
+	self = instance;
+	g_atomic_int_inc (&self->ref_count);
+	return instance;
+}
+
+
+void loaders_unref (gpointer instance) {
+	loaders* self;
+	self = instance;
+	if (g_atomic_int_dec_and_test (&self->ref_count)) {
+		LOADERS_GET_CLASS (self)->finalize (self);
+		g_type_free_instance ((GTypeInstance *) self);
+	}
 }
