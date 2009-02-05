@@ -105,8 +105,8 @@ gchar* loaders_http_content (loaders* self, 	const gchar * action, gsize * lengt
 					g_free(tmpstr);
 	    	}			
 	    	{			
-				soup_message_headers_append(msg->request_headers, "Cookie",
-						cookies_storage_get(cookies_save, action));
+				/*soup_message_headers_append(msg->request_headers, "Cookie",
+						cookies_storage_get(cookies_save, action));*/
 				soup_message_headers_append(msg->request_headers,
 					    "Accept-Charset",
 					    "UTF-8, unicode-1-1;q=0.8");
@@ -127,8 +127,8 @@ gchar* loaders_http_content (loaders* self, 	const gchar * action, gsize * lengt
 			    			soup_message_headers_get(msg->response_headers,
 								"Set-Cookie");
 
-						if (cookies)
-			    			cookies_storage_add(cookies_save, cookies, *curr_base);
+						/*if (cookies)
+			    			cookies_storage_add(cookies_save, cookies, *curr_base);*/
 		    		}
 		    		buf = (gchar*)msg->response_body->data;
 		    		*length = msg->response_body->length;
