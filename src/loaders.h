@@ -40,10 +40,9 @@ struct _ParamSpecloaders {
 };
 
 
-void loaders_setSoap (loaders* self, const char* Soap);
+void loaders_init_soap (loaders* self, const cookies_storage* cookies_save,const SoupSession* session);
 char* loaders_http_content (loaders* self, 	const gchar * action, gsize * length, gchar ** contentType,
-				gchar* method, gchar* encoding, gchar** curr_base,
-				cookies_storage* cookies_save, SoupSession* session);
+				gchar* method, gchar* encoding, gchar** curr_base);
 char* loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType);
 char* loaders_default_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType);
 loaders* loaders_construct (GType object_type);
