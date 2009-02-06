@@ -151,6 +151,8 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 			currpos++;
 		}
 		loaders *loaders_e = loaders_ref(loaders_new());	
+		/* Enable change content type in engine */
+    	gtk_html_set_default_engine(html, TRUE);
 		loaders_init_internal (loaders_e , variable->saved_cookies, variable->session, html, stream, redirect_save);
 		/* load data*/
 		loaders_render(loaders_e, realurl, method, encoding);
@@ -161,6 +163,15 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 		g_print("Unknow Metod for url '%s'", realurl);
     }
     free(realurl);
+}
+
+/*stop all query*/
+static void stop_query(gpointer data)
+{
+	    struct All_variable *variable = (struct All_variable *) data;
+		if (variable->session != NULL)
+		/*if( SOUP_IS_SOCKET (variable->session))*/
+			soup_session_abort(variable->session);
 }
 
 //запросить данные
@@ -192,6 +203,7 @@ on_link_clicked(GtkHTML * html, const gchar * url, gpointer data)
 					return;
 				}
     {
+		stop_query(data);
 		GtkHTMLStream *stream = gtk_html_begin_content(html, "");
 		gtk_html_set_base (html, url);
 		getdata(html, "GET", url, "", stream, data, TRUE);
@@ -203,8 +215,8 @@ static void
 on_submit(GtkHTML * html, const gchar * method, const gchar * action,
 	  const gchar * encoding, gpointer data)
 {
+	stop_query(data);
     GtkHTMLStream *stream = gtk_html_begin_content(html, "");
-
     getdata(html, method, action, encoding, stream, data, TRUE);
 }
 
@@ -218,8 +230,7 @@ on_exit_window(GtkWidget * window, gpointer data)
     if (data == NULL)
 		g_print("Eroor in file (%s) line (%d)", __FILE__, __LINE__);
 #endif
-	if( variable->session != NULL)
-		soup_session_abort(variable->session);
+	stop_query(data);
     gtk_main_quit();
     return FALSE;
 }
