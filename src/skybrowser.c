@@ -151,9 +151,9 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 			currpos++;
 		}
 		loaders *loaders_e = loaders_ref(loaders_new());	
-		loaders_init_internal (loaders_e , variable->saved_cookies, variable->session, html, stream);
+		loaders_init_internal (loaders_e , variable->saved_cookies, variable->session, html, stream, redirect_save);
 		/* load data*/
-		loaders_render(loaders_e, realurl, method, encoding, redirect_save);
+		loaders_render(loaders_e, realurl, method, encoding);
 	
 		if (gotocharp)
 			change_position(html, gotocharp, data);
