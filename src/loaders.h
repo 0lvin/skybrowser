@@ -41,10 +41,14 @@ struct _ParamSpecloaders {
 };
 
 /*init render*/
-void loaders_init_internal (loaders* self, const cookies_storage* cookies_save,const SoupSession* session,GtkHTML * html, GtkHTMLStream *stream);
-/*get content and Render*/
-void loaders_render(loaders *loaders_e, const gchar *action, const gchar * method, const gchar * encoding, gboolean redirect_save);
+void loaders_init_internal (	loaders* self, const cookies_storage* cookies_save,
+								const SoupSession* session,GtkHTML * html,
+								GtkHTMLStream *stream, gboolean redirect_save);
 
+/*get content and Render*/
+void loaders_render(	loaders *self, const gchar *action,
+						const gchar * method, const gchar * encoding);
+						
 loaders* loaders_construct (GType object_type);
 loaders* loaders_new (void);
 GParamSpec* param_spec_loaders (const gchar* name, const gchar* nick, const gchar* blurb, GType object_type, GParamFlags flags);
