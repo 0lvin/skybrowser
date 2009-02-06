@@ -15,6 +15,8 @@ struct _loadersPrivate {
 	GtkHTML * html;
 	/*current stream load*/
 	GtkHTMLStream *stream;
+	/*need save redirect url*/
+	 gboolean redirect_save;
 };
 
 #define LOADERS_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TYPE_LOADERS, loadersPrivate))
@@ -27,14 +29,13 @@ static gpointer loaders_parent_class = NULL;
 static void loaders_finalize (loaders* obj);
 void loaders_renderbuf(loaders* self, gchar *buf, size_t length, gchar *ContentType);
 gchar * decode(const gchar * token);
-gchar* loaders_http_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType,
-				gchar* method, gchar* encoding, gchar** curr_base);
+void loaders_http_content (loaders* self, const gchar * action, gchar* method, gchar* encoding);
 gchar* loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType);
 gchar* loaders_default_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType);
 
 /* code*/
 
-void loaders_init_internal (loaders* self, const cookies_storage* cookies_save,const SoupSession* session,GtkHTML * html, GtkHTMLStream *stream) {
+void loaders_init_internal (loaders* self, const cookies_storage* cookies_save,const SoupSession* session,GtkHTML * html, GtkHTMLStream *stream, gboolean redirect_save) {
 	g_return_if_fail (self != NULL);
 	g_return_if_fail (session != NULL);
 	g_return_if_fail (cookies_save != NULL);	
@@ -44,18 +45,18 @@ void loaders_init_internal (loaders* self, const cookies_storage* cookies_save,c
 	self->priv->html = html;
 	self->priv->stream = stream;
 	self->priv->session  = session;
+	self->priv->redirect_save = redirect_save;
 }
 
 void
 loaders_render(loaders *self, const gchar *action, const gchar * method, 
-		const gchar * encoding, gboolean redirect_save)
+		const gchar * encoding)
 {    	
-	g_return_if_fail (self != NULL);
-    gchar *ContentType = NULL;
-
-    gchar *buf = NULL;
-
-    size_t length = 0;
+	gchar *ContentType = NULL;
+	gchar *buf = NULL;
+	size_t length = 0;
+	
+	g_return_if_fail (self != NULL);  
 		
 	if (!strncmp(action, "data:", strlen("data:")))
 		buf = loaders_data_content(self, action, &length, &ContentType);
@@ -63,17 +64,8 @@ loaders_render(loaders *self, const gchar *action, const gchar * method,
 	if (!strncmp(action, "http:", strlen("http:")))
 		if(buf == NULL)
 		{
-			gchar* curr_base = g_strdup(gtk_html_get_base(self->priv->html));
-			gchar* curr_base_save = curr_base;
-			buf = loaders_http_content(self, action, &length, &ContentType, method,
-				 encoding, &curr_base);
-			if( buf != NULL)
-			{
-				if (redirect_save == TRUE)
-					gtk_html_set_base (self->priv->html, curr_base);
-				if(curr_base_save != curr_base)
-					free(curr_base_save);
-			}
+			loaders_http_content(self, action, method, encoding);
+			return;
 		}
 		
     if (buf == NULL)
@@ -149,18 +141,52 @@ decode(const gchar * token)
     return resulted;
 }
 
+static void
+got_data (SoupSession *session, SoupMessage *msg, gpointer user_data)
+{
+	gsize length = 0;
+	gchar * contentType = NULL;
+	gchar * buf = NULL;	
+	loaders* self = NULL;
+	g_return_if_fail (user_data != NULL);	
+	self = (loaders*)user_data;
+	{
+		guint status = msg->status_code;
+		if (status >= 200 && status < 300) {
+			if (self->priv->redirect_save == TRUE) {
+				gchar* curr_base = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
+				gtk_html_set_base (self->priv->html, curr_base);
+				g_free(curr_base);
+			}
+
+	 		contentType =
+					(gchar*)soup_message_headers_get(msg->response_headers,
+						"Content-type");
+	   		{
+				const gchar *cookies =
+		   			soup_message_headers_get(msg->response_headers,
+								"Set-Cookie");
+
+				/*if (cookies)
+		    			cookies_storage_add(self->priv->cookies_save, cookies, *curr_base);*/
+			}
+			buf = (gchar*)msg->response_body->data;
+			length = msg->response_body->length;
+		} else {
+			g_print("Status=%d\n", status);
+		}
+	}
+	loaders_renderbuf(self, buf, length, contentType);
+}
+
 /*
  * encodind -- params for Get Or Post
  */
-gchar* 
-loaders_http_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType,
-				gchar* method, gchar* encoding, gchar** curr_base) {
-	g_return_val_if_fail (self != NULL, NULL);
-	g_return_val_if_fail (action != NULL, NULL);
-	g_return_val_if_fail (contentType != NULL, NULL);
-	gchar * buf = NULL;	
-	SoupMessage *msg;
-	
+void
+loaders_http_content (loaders* self, const gchar * action, gchar* method, gchar* encoding) {
+	SoupMessage *msg = NULL;
+	g_return_if_fail (self != NULL);
+	g_return_if_fail (action != NULL);
     if (!strncmp(action, "http:", strlen("http:"))) {
 		/*Know methods!!*/
 		if (!strcmp(method, "POST") || !strcmp(method, "GET")) {
@@ -179,7 +205,7 @@ loaders_http_content (loaders* self, const gchar * action, gsize * length, gchar
 					}
 					msg = soup_message_new("GET", tmpstr);
 					g_free(tmpstr);
-	    	}			
+	    	}
 	    	{			
 				/*soup_message_headers_append(msg->request_headers, "Cookie",
 						cookies_storage_get(self->priv->cookies_save, action));*/
@@ -188,45 +214,33 @@ loaders_http_content (loaders* self, const gchar * action, gsize * length, gchar
 					    "UTF-8, unicode-1-1;q=0.8");
 				/*may be error but current?*/
 				soup_message_headers_append(msg->request_headers, "Referer",
-							*curr_base);
+							gtk_html_get_base(self->priv->html));
 			}
-			{
-				guint status = soup_session_send_message(self->priv->session, msg);
-				*curr_base = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
-				
-				if (status >= 200 && status < 300) {					
-		    		*contentType =
-						(gchar*)soup_message_headers_get(msg->response_headers,
-							"Content-type");
-		    		{
-						const gchar *cookies =
-			    			soup_message_headers_get(msg->response_headers,
-								"Set-Cookie");
-
-						/*if (cookies)
-			    			cookies_storage_add(self->priv->cookies_save, cookies, *curr_base);*/
-		    		}
-		    		buf = (gchar*)msg->response_body->data;
-		    		*length = msg->response_body->length;
-					return buf;
-				} else {
-		    		g_print("Status=%d\n", status);
-					return NULL;
-				}
-	    	}
+			/*sync*/
+			soup_session_send_message(self->priv->session, msg);
+			got_data (self->priv->session, msg, self);
+			/*async
+			soup_session_queue_message (self->priv->session, msg, got_data, loaders_ref(self));
+			*/
+			return;
 		}
 	}
-	return NULL;
+	/*Not correct query*/
+	if (msg == NULL)
+	{
+		g_print("Not Correct Query %s \n",action);
+		loaders_renderbuf(self, NULL, 0, NULL);
+	}
 }
 
 /*receive content by static data from url*/
 gchar*
 loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType) {
+	guchar *buf = NULL;
 	g_return_val_if_fail (self != NULL, NULL);
 	g_return_val_if_fail (action != NULL, NULL);
 	g_return_val_if_fail (length != NULL, NULL);
 	g_return_val_if_fail (contentType != NULL, NULL);
-	guchar *buf = NULL;
     if (!strncmp(action, "data:", strlen("data:"))) {
 		const gchar *real_action = action + strlen("data:");
 		const gchar *start_data = strchr(real_action, ';');
@@ -261,14 +275,14 @@ loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar
 /*receive content by default loaders*/
 gchar*
 loaders_default_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType) {
+	gchar *buf = NULL;
+    GFile *fd = NULL;
+    GError *result = NULL;
+	
 	g_return_val_if_fail (self != NULL, NULL);
 	g_return_val_if_fail (action != NULL, NULL);
 	g_return_val_if_fail (length != NULL, NULL);
 	g_return_val_if_fail (contentType != NULL, NULL);
-	
-	gchar *buf = NULL;
-    GFile *fd = NULL;
-    GError *result = NULL;
 
     fd = g_file_new_for_uri(action);
 
