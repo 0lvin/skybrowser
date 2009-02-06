@@ -44,7 +44,7 @@ void loaders_init_internal (loaders* self, const cookies_storage* cookies_save,c
 	self->priv->cookies_save = cookies_storage_ref(cookies_save);
 	self->priv->html = html;
 	self->priv->stream = stream;
-	self->priv->session  = session;
+	self->priv->session = session;
 	self->priv->redirect_save = redirect_save;
 }
 
@@ -85,9 +85,6 @@ loaders_renderbuf(loaders* self, gchar *buf, size_t length, gchar *ContentType){
     }
 	
 	if (buf != NULL) {
-    	/* Enable change content type in engine */
-    	gtk_html_set_default_engine(self->priv->html, TRUE);
-
     	if (ContentType != NULL)
 			gtk_html_set_default_content_type(self->priv->html, ContentType);
     
@@ -150,33 +147,33 @@ got_data (SoupSession *session, SoupMessage *msg, gpointer user_data)
 	loaders* self = NULL;
 	g_return_if_fail (user_data != NULL);	
 	self = (loaders*)user_data;
-	{
-		guint status = msg->status_code;
-		if (status >= 200 && status < 300) {
-			if (self->priv->redirect_save == TRUE) {
-				gchar* curr_base = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
-				gtk_html_set_base (self->priv->html, curr_base);
-				g_free(curr_base);
-			}
-
-	 		contentType =
-					(gchar*)soup_message_headers_get(msg->response_headers,
-						"Content-type");
-	   		{
-				const gchar *cookies =
-		   			soup_message_headers_get(msg->response_headers,
-								"Set-Cookie");
-
-				/*if (cookies)
-		    			cookies_storage_add(self->priv->cookies_save, cookies, *curr_base);*/
-			}
-			buf = (gchar*)msg->response_body->data;
-			length = msg->response_body->length;
-		} else {
-			g_print("Status=%d\n", status);
+	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		g_warning ("%d - %s", msg->status_code, msg->reason_phrase);			
+	} else if (msg->status_code >= 200 && msg->status_code < 300) {
+		if (self->priv->redirect_save == TRUE) {
+			gchar* curr_base = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
+			gtk_html_set_base (self->priv->html, curr_base);
+			g_free(curr_base);
 		}
+
+		contentType =
+				(gchar*)soup_message_headers_get(msg->response_headers,
+					"Content-type");
+  		{
+			const gchar *cookies =
+	   			soup_message_headers_get(msg->response_headers,
+				"Set-Cookie");
+			/*if (cookies)
+		  			cookies_storage_add(self->priv->cookies_save, cookies, *curr_base);*/
+		}
+		
+		buf = (gchar*)msg->response_body->data;
+		length = msg->response_body->length;
+	} else {
+		g_print("Status=%d\n", msg->status_code);
 	}
 	loaders_renderbuf(self, buf, length, contentType);
+	loaders_unref(user_data);
 }
 
 /*
@@ -187,6 +184,7 @@ loaders_http_content (loaders* self, const gchar * action, gchar* method, gchar*
 	SoupMessage *msg = NULL;
 	g_return_if_fail (self != NULL);
 	g_return_if_fail (action != NULL);
+	///g_return_if_fail (SOUP_IS_SOCKET (self->priv->session));
     if (!strncmp(action, "http:", strlen("http:"))) {
 		/*Know methods!!*/
 		if (!strcmp(method, "POST") || !strcmp(method, "GET")) {
@@ -218,9 +216,9 @@ loaders_http_content (loaders* self, const gchar * action, gchar* method, gchar*
 			}
 			/*sync*/
 			soup_session_send_message(self->priv->session, msg);
-			got_data (self->priv->session, msg, self);
+			got_data (self->priv->session, msg, loaders_ref(self));
 			/*async
-			soup_session_queue_message (self->priv->session, msg, got_data, loaders_ref(self));
+			soup_session_queue_message (self->priv->session, msg, got_data, loaders_ref(self));			
 			*/
 			return;
 		}
