@@ -56,67 +56,6 @@ change_position(GtkHTML * html, const gchar * position, gpointer data)
     g_print("Fix Me goto position '%s' in html not implemented\n", position);
 }
 
-static void renderbuf(GtkHTML * html, GtkHTMLStream * stream, gchar *buf, size_t length, gchar *ContentType){
-	 if (buf == NULL) {
-		static gchar html_source[] = "<html><body>Error while read file</body><html>";
-		buf = g_strdup(html_source);
-		length = strlen(html_source);
-    }
-	
-	if (buf != NULL) {
-    	/* Enable change content type in engine */
-    	gtk_html_set_default_engine(html, TRUE);
-
-    	if (ContentType != NULL)
-			gtk_html_set_default_content_type(html, ContentType);
-    
-		gtk_html_stream_write(stream, buf, length);
-		gtk_html_stream_close(stream, GTK_HTML_STREAM_OK);
-		g_free(buf);
-    }
-}
-
-static void
-loadData(GtkHTML * html, const gchar *action, const gchar * method, 
-		const gchar * encoding, GtkHTMLStream * stream,
-		gpointer data, gboolean redirect_save)
-{
-    struct All_variable *variable = (struct All_variable *) data;
-	
-	loaders *loaders_e = loaders_ref(loaders_new());
-	
-    gchar *ContentType = NULL;
-
-    gchar *buf = NULL;
-
-    size_t length = 0;
-	
-	gchar* curr_base = g_strdup(gtk_html_get_base(html));
-	loaders_init_soap (loaders_e , variable->saved_cookies, variable->session);
-	if (!strncmp(action, "data:", strlen("data:")))
-		buf = loaders_data_content(loaders_e, action, &length, &ContentType);
-		
-	if (!strncmp(action, "http:", strlen("http:")))
-		if(buf == NULL)
-		{
-			gchar* curr_base_save = curr_base;
-			buf = loaders_http_content(loaders_e, action, &length, &ContentType, method,
-				 encoding, &curr_base);
-			if( buf != NULL)
-			{
-				if (redirect_save == TRUE)
-					gtk_html_set_base (html, curr_base);
-				if(curr_base_save != curr_base)
-					free(curr_base_save);
-			}
-		}
-		
-    if (buf == NULL)
-		buf = loaders_default_content(loaders_e, action, &length, &ContentType);
-
-	renderbuf(html, stream, buf, length, ContentType);
-}
-
 /*получить даннык по ссылке*/
 static void
 getdata(GtkHTML * html, const gchar * method, const gchar * action,
@@ -211,9 +150,10 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 			}
 			currpos++;
 		}
+		loaders *loaders_e = loaders_ref(loaders_new());	
+		loaders_init_internal (loaders_e , variable->saved_cookies, variable->session, html, stream);
 		/* load data*/
-		loadData(html, realurl, method, encoding, stream, data,
-			redirect_save);
+		loaders_render(loaders_e, realurl, method, encoding, redirect_save);
 	
 		if (gotocharp)
 			change_position(html, gotocharp, data);

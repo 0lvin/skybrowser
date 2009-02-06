@@ -7,8 +7,14 @@
 #include <config.h>
 
 struct _loadersPrivate {
+	/*all cookies in session*/
 	cookies_storage* cookies_save;
+	/*parent session*/
 	SoupSession* session;
+	/*parent for all rendering*/
+	GtkHTML * html;
+	/*current stream load*/
+	GtkHTMLStream *stream;
 };
 
 #define LOADERS_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TYPE_LOADERS, loadersPrivate))
@@ -16,18 +22,87 @@ enum  {
 	LOADERS_DUMMY_PROPERTY
 };
 static gpointer loaders_parent_class = NULL;
+
+/* define internal function*/
 static void loaders_finalize (loaders* obj);
+void loaders_renderbuf(loaders* self, gchar *buf, size_t length, gchar *ContentType);
+gchar * decode(const gchar * token);
+gchar* loaders_http_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType,
+				gchar* method, gchar* encoding, gchar** curr_base);
+gchar* loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType);
+gchar* loaders_default_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType);
 
+/* code*/
 
-
-void loaders_init_soap (loaders* self, const cookies_storage* cookies_save,const SoupSession* session) {
+void loaders_init_internal (loaders* self, const cookies_storage* cookies_save,const SoupSession* session,GtkHTML * html, GtkHTMLStream *stream) {
 	g_return_if_fail (self != NULL);
 	g_return_if_fail (session != NULL);
 	g_return_if_fail (cookies_save != NULL);	
 	if(self->priv->cookies_save != NULL)
 		cookies_storage_unref(self->priv->cookies_save);
 	self->priv->cookies_save = cookies_storage_ref(cookies_save);
+	self->priv->html = html;
+	self->priv->stream = stream;
 	self->priv->session  = session;
+}
+
+void
+loaders_render(loaders *self, const gchar *action, const gchar * method, 
+		const gchar * encoding, gboolean redirect_save)
+{    	
+	g_return_if_fail (self != NULL);
+    gchar *ContentType = NULL;
+
+    gchar *buf = NULL;
+
+    size_t length = 0;
+		
+	if (!strncmp(action, "data:", strlen("data:")))
+		buf = loaders_data_content(self, action, &length, &ContentType);
+		
+	if (!strncmp(action, "http:", strlen("http:")))
+		if(buf == NULL)
+		{
+			gchar* curr_base = g_strdup(gtk_html_get_base(self->priv->html));
+			gchar* curr_base_save = curr_base;
+			buf = loaders_http_content(self, action, &length, &ContentType, method,
+				 encoding, &curr_base);
+			if( buf != NULL)
+			{
+				if (redirect_save == TRUE)
+					gtk_html_set_base (self->priv->html, curr_base);
+				if(curr_base_save != curr_base)
+					free(curr_base_save);
+			}
+		}
+		
+    if (buf == NULL)
+		buf = loaders_default_content(self, action, &length, &ContentType);
+
+	loaders_renderbuf(self, buf, length, ContentType);
+}
+
+/*Render bufs*/
+void 
+loaders_renderbuf(loaders* self, gchar *buf, size_t length, gchar *ContentType){
+	 g_return_if_fail (self != NULL);
+	 if (buf == NULL) {
+		static gchar html_source[] = "<html><body>Error while read file</body><html>";
+		buf = g_strdup(html_source);
+		length = strlen(html_source);
+    }
+	
+	if (buf != NULL) {
+    	/* Enable change content type in engine */
+    	gtk_html_set_default_engine(self->priv->html, TRUE);
+
+    	if (ContentType != NULL)
+			gtk_html_set_default_content_type(self->priv->html, ContentType);
+    
+		gtk_html_stream_write(self->priv->stream, buf, length);
+		gtk_html_stream_close(self->priv->stream, GTK_HTML_STREAM_OK);
+		g_free(buf);
+    }
 }
 
 /*unescape url*/
@@ -77,7 +152,8 @@ decode(const gchar * token)
 /*
  * encodind -- params for Get Or Post
  */
-gchar* loaders_http_content (loaders* self, 	const gchar * action, gsize * length, gchar ** contentType,
+gchar* 
+loaders_http_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType,
 				gchar* method, gchar* encoding, gchar** curr_base) {
 	g_return_val_if_fail (self != NULL, NULL);
 	g_return_val_if_fail (action != NULL, NULL);
@@ -144,7 +220,8 @@ gchar* loaders_http_content (loaders* self, 	const gchar * action, gsize * lengt
 }
 
 /*receive content by static data from url*/
-gchar* loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType) {
+gchar*
+loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType) {
 	g_return_val_if_fail (self != NULL, NULL);
 	g_return_val_if_fail (action != NULL, NULL);
 	g_return_val_if_fail (length != NULL, NULL);
@@ -182,7 +259,8 @@ gchar* loaders_data_content (loaders* self, const gchar * action, gsize * length
 }
 
 /*receive content by default loaders*/
-gchar* loaders_default_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType) {
+gchar*
+loaders_default_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType) {
 	g_return_val_if_fail (self != NULL, NULL);
 	g_return_val_if_fail (action != NULL, NULL);
 	g_return_val_if_fail (length != NULL, NULL);
