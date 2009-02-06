@@ -196,12 +196,6 @@ gchar* loaders_default_content (loaders* self, const gchar * action, gsize * len
 
     g_file_load_contents(fd, NULL, &buf, length, NULL, &result);
 
-    if (buf == NULL) {
-		static gchar html_source[] = "<html><body>Error while read file</body><html>";
-		buf = g_strdup(html_source);
-		*length = strlen(html_source);
-    }
-
     g_object_unref(fd);
     return buf;
 }
