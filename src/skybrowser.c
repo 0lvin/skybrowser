@@ -56,6 +56,26 @@ change_position(GtkHTML * html, const gchar * position, gpointer data)
     g_print("Fix Me goto position '%s' in html not implemented\n", position);
 }
 
+static void renderbuf(GtkHTML * html, GtkHTMLStream * stream, gchar *buf, size_t length, gchar *ContentType){
+	 if (buf == NULL) {
+		static gchar html_source[] = "<html><body>Error while read file</body><html>";
+		buf = g_strdup(html_source);
+		length = strlen(html_source);
+    }
+	
+	if (buf != NULL) {
+    	/* Enable change content type in engine */
+    	gtk_html_set_default_engine(html, TRUE);
+
+    	if (ContentType != NULL)
+			gtk_html_set_default_content_type(html, ContentType);
+    
+		gtk_html_stream_write(stream, buf, length);
+		gtk_html_stream_close(stream, GTK_HTML_STREAM_OK);
+		g_free(buf);
+    }
+}
+
 static void
 loadData(GtkHTML * html, const gchar *action, const gchar * method, 
 		const gchar * encoding, GtkHTMLStream * stream,
@@ -93,19 +113,9 @@ loadData(GtkHTML * html, const gchar *action, const gchar * method,
 		
     if (buf == NULL)
 		buf = loaders_default_content(loaders_e, action, &length, &ContentType);
-	
-	if (buf != NULL) {
-    	/* Enable change content type in engine */
-    	gtk_html_set_default_engine(html, TRUE);
 
-    	if (ContentType != NULL)
-			gtk_html_set_default_content_type(html, ContentType);
-    
-		gtk_html_stream_write(stream, buf, length);
-		gtk_html_stream_close(stream, GTK_HTML_STREAM_OK);
-    }
+	renderbuf(html, stream, buf, length, ContentType);
 }
-
 
 /*получить даннык по ссылке*/
 static void
