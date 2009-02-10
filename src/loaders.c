@@ -158,8 +158,6 @@ got_data (SoupSession *session, SoupMessage *msg, gpointer user_data)
 	   			soup_message_headers_get(msg->response_headers,
 				"Set-Cookie");
 			g_print("cookies:%s\n\n",cookies);
-			/*if (cookies)
-		  			cookies_storage_add(self->priv->cookies_save, cookies, *curr_base);*/
 		}
 		
 		buf = (gchar*)msg->response_body->data;
@@ -200,8 +198,6 @@ loaders_http_content (loaders* self, const gchar * action, gchar* method, gchar*
 					g_free(tmpstr);
 	    	}
 	    	{			
-				/*soup_message_headers_append(msg->request_headers, "Cookie",
-						cookies_storage_get(self->priv->cookies_save, action));*/
 				soup_message_headers_append(msg->request_headers,
 					    "Accept-Charset",
 					    "UTF-8, unicode-1-1;q=0.8");
