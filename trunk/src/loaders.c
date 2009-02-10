@@ -7,8 +7,6 @@
 #include <config.h>
 
 struct _loadersPrivate {
-	/*all cookies in session*/
-	cookies_storage* cookies_save;
 	/*parent session*/
 	SoupSession* session;
 	/*parent for all rendering*/
@@ -35,13 +33,9 @@ gchar* loaders_default_content (loaders* self, const gchar * action, gsize * len
 
 /* code*/
 
-void loaders_init_internal (loaders* self, const cookies_storage* cookies_save,const SoupSession* session,GtkHTML * html, GtkHTMLStream *stream, gboolean redirect_save) {
+void loaders_init_internal (loaders* self, const SoupSession* session,GtkHTML * html, GtkHTMLStream *stream, gboolean redirect_save) {
 	g_return_if_fail (self != NULL);
-	g_return_if_fail (session != NULL);
-	g_return_if_fail (cookies_save != NULL);	
-	if(self->priv->cookies_save != NULL)
-		cookies_storage_unref(self->priv->cookies_save);
-	self->priv->cookies_save = cookies_storage_ref(cookies_save);
+	g_return_if_fail (session != NULL);	
 	self->priv->html = html;
 	self->priv->stream = stream;
 	self->priv->session = session;
@@ -163,6 +157,7 @@ got_data (SoupSession *session, SoupMessage *msg, gpointer user_data)
 			const gchar *cookies =
 	   			soup_message_headers_get(msg->response_headers,
 				"Set-Cookie");
+			g_print("cookies:%s\n\n",cookies);
 			/*if (cookies)
 		  			cookies_storage_add(self->priv->cookies_save, cookies, *curr_base);*/
 		}
@@ -412,9 +407,7 @@ static void loaders_instance_init (loaders * self) {
 static void loaders_finalize (loaders* obj) {
 	loaders * self;
 	self = LOADERS (obj);
-	if(self->priv->cookies_save != NULL)
-		cookies_storage_unref(self->priv->cookies_save);
-	self->priv->cookies_save = NULL;
+	/* free all??*/
 }
 
 

@@ -6,8 +6,8 @@
 #include <glib-object.h>
 #include <stdlib.h>
 #include <string.h>
-#include "cookies_storage.h"
 #include <libsoup/soup.h>
+#include <libsoup/soup-cookie-jar.h>>
 #include <gtkhtml/gtkhtml.h>
 
 G_BEGIN_DECLS
@@ -41,9 +41,9 @@ struct _ParamSpecloaders {
 };
 
 /*init render*/
-void loaders_init_internal (	loaders* self, const cookies_storage* cookies_save,
-								const SoupSession* session,GtkHTML * html,
-								GtkHTMLStream *stream, gboolean redirect_save);
+void loaders_init_internal (	loaders* self, const SoupSession* session,
+								GtkHTML * html, GtkHTMLStream *stream,
+								gboolean redirect_save);
 
 /*get content and Render*/
 void loaders_render(	loaders *self, const gchar *action,
