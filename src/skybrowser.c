@@ -66,7 +66,11 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
     char *gotocharp = NULL;
 
     struct All_variable *variable = (struct All_variable *) data;
-	
+
+	if (action == NULL){
+		g_print("\nBUG:Mot set action\n");
+		return;	
+	}
 #ifdef DebugVariable
     g_print("variable=%x \n", variable);
 	
@@ -87,21 +91,19 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 			!strncmp(action, "ftp:",   strlen("ftp:"))   ||
 			!strncmp(action, "file:",  strlen("file:"))  ||
 			!strncmp(action, "data:",  strlen("data:"))  ||
-			baseurl == NULL/*unknow base url*/
+			strlen(baseurl) == 0 /*unknow base url*/
 		) {
 			/*all right it's full url*/
 			realurl = g_strdup(action);
 		} else {			
 			g_print("received %s %s \r\n",action,baseurl);
 			realurl =
-				(gchar *) g_new(gchar,
+				(gchar *) g_new0(gchar,
 						strlen(action) +
 						strlen(baseurl) + 4);
 			strncpy(realurl, baseurl,strlen(baseurl));
-			if(0)
-			{
 			/*contein slash - is path from domain*/
-			if (*action == '/' && strlen(realurl) > 1){
+			if (*action == '/'){
 				/*fing first '//' (as example file://) */
 				gchar* startdomain = strstr(realurl,"//");
 				if(startdomain != NULL){
@@ -110,9 +112,11 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 					gchar* enddomain = strchr(startdomain,'/');
 					if(enddomain == NULL)
 						enddomain = startdomain;
-					strcat(startdomain, action);
+					strcpy(enddomain, action);
+					g_print("resulted fullurl=%s action=%s baseurl=%s\n", realurl, action, baseurl);
 				}
 			} else {
+				/*TODO Test It*/
 				/*not started from slash*/
 				gchar * from = realurl;
 				/*search '?'*/
@@ -132,7 +136,6 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 					*lastslash = '/';
 				}
 				strcat(lastslash,action);
-			}
 			}
 		}		
 		g_print("submitting '%s' to '%s' using method '%s' by '%s' \n",
@@ -342,7 +345,7 @@ main(int argc, char **argv)
     g_print("variable->session=%x \n", variable->session);
 #endif
     gtk_entry_set_text((GtkEntry *) (variable->entry),
-		       argc > 1 ? argv[1] : "http://mail.ru");
+		       argc > 1 ? argv[1] : "http://denis.agenstvo.com");
     on_entry_changed(variable->entry, variable);
     /* run the main loop */
     gtk_main();
