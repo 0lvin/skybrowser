@@ -11,8 +11,7 @@ struct All_variable
 #ifdef needAddWindow
     GtkWidget *window;
 #endif
-    GtkWidget *entry;
-    cookies_storage* saved_cookies;
+    GtkWidget *entry;    
     /*текущая сесия, может нужно перенести в параметр обратного вызова */
     SoupSession *session;
 };
@@ -153,7 +152,7 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 		loaders *loaders_e = loaders_ref(loaders_new());	
 		/* Enable change content type in engine */
     	gtk_html_set_default_engine(html, TRUE);
-		loaders_init_internal (loaders_e , variable->saved_cookies, variable->session, html, stream, redirect_save);
+		loaders_init_internal (loaders_e, variable->session, html, stream, redirect_save);
 		/* load data*/
 		loaders_render(loaders_e, realurl, method, encoding);
 	
@@ -302,7 +301,11 @@ main(int argc, char **argv)
     gtk_container_add(GTK_CONTAINER(variable->app),
 		      variable->scrolled_window);
     gtk_window_set_default_size(GTK_WINDOW(variable->app), 800, 600);
+/* init session */
     variable->session = soup_session_sync_new();
+	SoupCookieJar * cookie_jar = soup_cookie_jar_text_new("./cookies.txt", FALSE);
+	soup_session_add_feature(variable->session, SOUP_SESSION_FEATURE(cookie_jar));
+/* end init session*/
     gtk_widget_show_all(variable->app);
 #ifdef needAddWindow
     gtk_widget_show_all(variable->window);
@@ -338,7 +341,6 @@ main(int argc, char **argv)
     g_print("variable=%x \n", variable);
     g_print("variable->session=%x \n", variable->session);
 #endif
-    variable->saved_cookies = cookies_storage_new ();
     gtk_entry_set_text((GtkEntry *) (variable->entry),
 		       argc > 1 ? argv[1] : "http://mail.ru");
     on_entry_changed(variable->entry, variable);
