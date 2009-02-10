@@ -43,8 +43,7 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am_skybrowser_OBJECTS = cookies_storage.$(OBJEXT) loaders.$(OBJEXT) \
-	skybrowser.$(OBJEXT)
+am_skybrowser_OBJECTS = loaders.$(OBJEXT) skybrowser.$(OBJEXT)
 skybrowser_OBJECTS = $(am_skybrowser_OBJECTS)
 skybrowser_LDADD = $(LDADD)
 am__DEPENDENCIES_1 =
@@ -164,7 +163,7 @@ INCLUDES = \
 LDADD = $(SOUP_LIBS)                    \
         $(GTKHTML_LIBS)
 
-skybrowser_SOURCES = cookies_storage.c loaders.c skybrowser.c
+skybrowser_SOURCES = loaders.c skybrowser.c
 all: all-am
 
 .SUFFIXES:
@@ -231,7 +230,6 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cookies_storage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loaders.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/skybrowser.Po@am__quote@
 
