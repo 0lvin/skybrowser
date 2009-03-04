@@ -10,7 +10,11 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_HEADER([config.h])
 
 # Checks for programs.
+
+AC_SEARCH_LIBS([strerror],[cposix])
 AC_PROG_CC
+AC_HEADER_STDC
+DOLT
 
 # Checks for libraries.
 
@@ -22,7 +26,7 @@ AM_CONDITIONAL(HAVE_SOUP, test x$have_soup != xno)
 AC_SUBST(SOUP_CFLAGS)
 AC_SUBST(SOUP_LIBS)
 
-GTKHTML_MODULES="libgnomeui-2.0 >= 2.0.0 gtk+-unix-print-2.0 >= 2.10.0 libglade-2.0 >= 2.0.0 libgtkhtml-3.14"
+GTKHTML_MODULES="gtk+-unix-print-2.0 >= 2.10.0 libglade-2.0 >= 2.0.0 libgtkhtml-3.14"
 PKG_CHECK_MODULES(GTKHTML, $GTKHTML_MODULES)
 AC_SUBST(GTKHTML_CFLAGS)
 AC_SUBST(GTKHTML_LIBS)

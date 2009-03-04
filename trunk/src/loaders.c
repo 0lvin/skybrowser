@@ -54,18 +54,23 @@ loaders_render(loaders *self, const gchar *action, const gchar * method,
 		
 	if (!strncmp(action, "data:", strlen("data:")))
 		buf = loaders_data_content(self, action, &length, &ContentType);
-		
-	if (!strncmp(action, "http:", strlen("http:")))
-		if(buf == NULL)
-		{
-			loaders_http_content(self, action, method, encoding);
-			return;
-		}
+	
+	if(buf == NULL)
+		if (
+			!strncmp(action, "http:", strlen("http:")) ||
+			!strncmp(action, "https:", strlen("https:"))
+			) {
+				loaders_http_content(self, action, method, encoding);
+				return;
+			}
 		
     if (buf == NULL)
 		buf = loaders_default_content(self, action, &length, &ContentType);
 
 	loaders_renderbuf(self, buf, length, ContentType);
+	
+	if(buf != NULL)
+		g_free(buf);
 }
 
 /*Render bufs*/
@@ -84,7 +89,6 @@ loaders_renderbuf(loaders* self, gchar *buf, size_t length, gchar *ContentType){
     
 		gtk_html_stream_write(self->priv->stream, buf, length);
 		gtk_html_stream_close(self->priv->stream, GTK_HTML_STREAM_OK);
-		g_free(buf);
     }
 }
 
@@ -150,16 +154,11 @@ got_data (SoupSession *session, SoupMessage *msg, gpointer user_data)
 			g_free(curr_base);
 		}
 
-		contentType =
-				(gchar*)soup_message_headers_get(msg->response_headers,
-					"Content-type");
-  		{
-			const gchar *cookies =
-	   			soup_message_headers_get(msg->response_headers,
-				"Set-Cookie");
-			g_print("cookies:%s\n\n",cookies);
-		}
-		
+		contentType = (gchar*) soup_message_headers_get(
+								msg->response_headers,
+								"Content-type"
+							);
+					
 		buf = (gchar*)msg->response_body->data;
 		length = msg->response_body->length;
 	} else {
@@ -178,7 +177,10 @@ loaders_http_content (loaders* self, const gchar * action, gchar* method, gchar*
 	g_return_if_fail (self != NULL);
 	g_return_if_fail (action != NULL);
 	///g_return_if_fail (SOUP_IS_SOCKET (self->priv->session));
-    if (!strncmp(action, "http:", strlen("http:"))) {
+    if (
+		!strncmp(action, "http:", strlen("http:")) ||
+		!strncmp(action, "https:", strlen("https:"))
+		) {
 		/*Know methods!!*/
 		if (!strcmp(method, "POST") || !strcmp(method, "GET")) {
 	    	if (!strcmp(method, "POST")) {
@@ -205,12 +207,7 @@ loaders_http_content (loaders* self, const gchar * action, gchar* method, gchar*
 				soup_message_headers_append(msg->request_headers, "Referer",
 							gtk_html_get_base(self->priv->html));
 			}
-			/*sync*/
-			soup_session_send_message(self->priv->session, msg);
-			got_data (self->priv->session, msg, loaders_ref(self));
-			/*async
-			soup_session_queue_message (self->priv->session, msg, got_data, loaders_ref(self));			
-			*/
+			soup_session_queue_message (self->priv->session, msg, got_data, loaders_ref(self));
 			return;
 		}
 	}
