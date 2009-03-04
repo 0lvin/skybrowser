@@ -183,6 +183,7 @@ url_requested(GtkHTML * html, const char *url, GtkHTMLStream * stream,
 {
     if (url == NULL)
 		return;
+
     getdata(html, "GET", url, "", stream, data, FALSE);
 }
 
@@ -305,7 +306,7 @@ main(int argc, char **argv)
 		      variable->scrolled_window);
     gtk_window_set_default_size(GTK_WINDOW(variable->app), 800, 600);
 /* init session */
-    variable->session = soup_session_sync_new();
+    variable->session = soup_session_async_new ();
 	SoupCookieJar * cookie_jar = soup_cookie_jar_text_new("./cookies.txt", FALSE);
 	soup_session_add_feature(variable->session, SOUP_SESSION_FEATURE(cookie_jar));
 /* end init session*/
@@ -345,7 +346,7 @@ main(int argc, char **argv)
     g_print("variable->session=%x \n", variable->session);
 #endif
     gtk_entry_set_text((GtkEntry *) (variable->entry),
-		       argc > 1 ? argv[1] : "http://denis.agenstvo.com");
+		       argc > 1 ? argv[1] : "http://foto.mail.ru");
     on_entry_changed(variable->entry, variable);
     /* run the main loop */
     gtk_main();
