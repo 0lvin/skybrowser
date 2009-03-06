@@ -13,5 +13,5 @@ LDADD = $(SOUP_LIBS)                    \
 
 bin_PROGRAMS = skybrowser
 
-skybrowser_SOURCES = loaders.c skybrowser.c
+skybrowser_SOURCES = htmlengineinterface.c loaders.c skybrowser.c
 
