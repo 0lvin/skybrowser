@@ -27,57 +27,101 @@
 static gboolean
 on_exit_window(GtkWidget * window, gpointer data)
 {
-    struct All_variable *variable = (struct All_variable *) data;
-#ifdef DebugVariable
-    g_print("variable=%x \n", variable);
-    g_print("variable->session=%x \n", variable->session);
-    if (data == NULL)
-		g_print("Eroor in file (%s) line (%d)", __FILE__, __LINE__);
-#endif
 	html_engine_interface_stop_query(data);
     gtk_main_quit();
     return FALSE;
 }
 
-/*маин он и в Африке маин:-)*/
+static void
+quit_action (GtkWidget *widget, gpointer data)
+{
+  html_engine_interface_stop_query(data);
+  gtk_main_quit();
+}
+
+/*standart main function*/
 int
 main(int argc, char **argv)
 {
-    struct All_variable *variable = html_engine_intreface_construct();
-
-    /* Инициализируем поддержку i18n */
+    /* initialization support i18n */
     gtk_set_locale();
 
-    /* Инициализируем установки виджета */
+    /* init gtk */
     gtk_init(&argc, &argv);
 
+    /*main window*/
     GtkWidget *app = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_default_size(GTK_WINDOW(app), 640, 480);
 	
+	struct All_variable *variable = html_engine_intreface_construct();	
+    g_signal_connect(app, "delete-event",
+		     G_CALLBACK(on_exit_window), variable);
+			 
+	/*main table*/
+	GtkWidget *table = gtk_table_new (1, 2, FALSE);
+	gtk_container_add (GTK_CONTAINER (app), table);
+	/*action group*/
+	GtkWidget *action_table = gtk_table_new (4, 1, FALSE);
+	/*back*/
+	GtkWidget *buttonback = gtk_button_new_from_stock(GTK_STOCK_GO_BACK);
+	gtk_table_attach (GTK_TABLE (action_table),
+                        buttonback,
+                        /* X direction */       /* Y direction */
+                        0, 1,                   0, 1,
+                        GTK_SHRINK,  			GTK_SHRINK,
+                        0,                      0);
+	/*entry*/
+	GtkWidget *textentry = gtk_entry_new ();
+	gtk_table_attach (GTK_TABLE (action_table),
+                        textentry,
+                        /* X direction */       /* Y direction */
+                        1, 2,                   0, 1,
+                        GTK_EXPAND | GTK_FILL,  GTK_EXPAND | GTK_FILL,
+                        0,                      0);
+	/*forward*/
+	GtkWidget *buttonforward = gtk_button_new_from_stock(GTK_STOCK_GO_FORWARD);
+	gtk_table_attach (GTK_TABLE (action_table),
+                        buttonforward,
+                        /* X direction */       /* Y direction */
+                        2, 3,                   0, 1,
+                        GTK_SHRINK,  			GTK_SHRINK,
+                        0,                      0);
+	/*quit*/
+	GtkWidget *buttonquit = gtk_button_new_from_stock(GTK_STOCK_QUIT);
+	gtk_table_attach (GTK_TABLE (action_table),
+                        buttonquit,
+                        /* X direction */       /* Y direction */
+                        3, 4,                   0, 1,
+                        GTK_SHRINK,  			GTK_SHRINK,
+                        0,                      0);
+	g_signal_connect (G_OBJECT (buttonquit), "clicked",
+						G_CALLBACK (quit_action), variable);
+	/*add action table to main table*/
+	gtk_table_attach (GTK_TABLE (table),
+                        action_table,
+                        /* X direction */       /* Y direction */
+                        0, 1,                   0, 1,
+                        GTK_EXPAND | GTK_FILL,	GTK_SHRINK,
+                        0,                      0);
+    /*scrolled content window*/
 	GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW
 				   (scrolled_window),
 				   GTK_POLICY_AUTOMATIC,
 				   GTK_POLICY_AUTOMATIC);
+	
+	gtk_table_attach (GTK_TABLE (table),
+                        scrolled_window,
+                        /* X direction */       /* Y direction */
+                        0, 1,                   1, 2,
+                        GTK_EXPAND | GTK_FILL,  GTK_EXPAND | GTK_FILL,
+                        0,                      0);
+						
+	/* add html render*/
+
     gtk_container_add(GTK_CONTAINER(scrolled_window),
 		      html_engine_intreface_init( variable, app));
-    gtk_container_add(GTK_CONTAINER(app),
-		      scrolled_window);
-    gtk_window_set_default_size(GTK_WINDOW(app), 800, 600);
-	
-    g_signal_connect(app, "delete-event",
-		     G_CALLBACK(on_exit_window), variable);
-    /*{
-		gchar *tmpstr = g_new0 (gchar, 255);
-		memcpy(tmpstr, "file:", sizeof("file:"));
-		getcwd(tmpstr + strlen("file:"), 255 - strlen("file:") - 1);
-		strcat(tmpstr, "/");
-		gtk_html_set_base(GTK_HTML(variable->html), tmpstr);
-		g_free(tmpstr);
-    }*/
-#ifdef DebugVariable
-    g_print("variable=%x \n", variable);
-    g_print("variable->session=%x \n", variable->session);
-#endif
+	/*show new window*/
     gtk_widget_show_all(app);
 	
 	html_engine_intreface_go(variable, argc > 1 ? argv[1] : "http://foto.mail.ru");
