@@ -21,6 +21,7 @@
 #include <gtkhtml/gtkhtml.h>
 #include "loaders.h"
 #include "htmlengineinterface.h"
+
 /* declaration */
 /*change title*/
 static void title_changed_cb(GtkHTML * html, const gchar * title, gpointer data);
@@ -42,19 +43,28 @@ static void getdata(GtkHTML * html, const gchar * method, const gchar * action,
 	const gchar * encoding, GtkHTMLStream * stream, gpointer data,
 	gboolean redirect_save);
 	
-//запросить данные
+/* request content from url */
 static void url_requested(GtkHTML * html, const char *url, GtkHTMLStream * stream,
 	      gpointer data);
 
-//нажали на ссылку
+/* click on link */
 static void on_link_clicked(GtkHTML * html, const gchar * url, gpointer data);
 
-//послали с формы
+/* submit from form */
 static void on_submit(GtkHTML * html, const gchar * method, const gchar * action,
 	  const gchar * encoding, gpointer data);
 
-//перенаправление
+/* action redirect */
 static void on_redirect(GtkHTML * html, const gchar * url, int delay, gpointer data);
+
+/*print page*/
+static void print_preview_cb (GtkHTML * html);
+
+/*draw one page*/
+static void
+draw_page_cb (GtkPrintOperation *operation, GtkPrintContext *context,
+              gint page_nr, gpointer user_data);
+			  
 /*interface*/
 
 struct All_variable *html_engine_intreface_construct()
@@ -62,23 +72,45 @@ struct All_variable *html_engine_intreface_construct()
 	return g_new(struct All_variable, 1);
 }
 
-void html_engine_intreface_go(struct All_variable * variable, char *go)
+void html_engine_interface_print(struct All_variable * variable)
 {
+	
+	GtkPrintOperation *operation;
+
+	operation = gtk_print_operation_new ();
+	gtk_print_operation_set_n_pages (operation, 1);
+
+	g_signal_connect (
+		operation, "draw-page",
+		G_CALLBACK (draw_page_cb), variable->html);
+
+	gtk_print_operation_run (
+		operation, GTK_PRINT_OPERATION_ACTION_PREVIEW, NULL, NULL);
+
+	g_object_unref (operation);
+}
+
+void html_engine_intreface_go(struct All_variable * variable, gchar *go)
+{
+	if(go == NULL)
+		return;
 	on_link_clicked(
 			GTK_HTML(variable->html),
 		    go,
 			variable);
 }
 
-GtkWidget* html_engine_intreface_init(struct All_variable * variable, GtkWidget* app)
+GtkWidget* html_engine_interface_init(struct All_variable * variable, GtkWidget* app, GtkWidget* textentry)
 {
+	SoupCookieJar * cookie_jar;
 	/* create GtkHTML widget */
     variable->html = gtk_html_new();
 	variable->app = app;
+	variable->textentry = textentry;
 	
 	/* init session */
     variable->session = soup_session_async_new ();
-	SoupCookieJar * cookie_jar = soup_cookie_jar_text_new("./cookies.txt", FALSE);
+	cookie_jar = soup_cookie_jar_text_new("./cookies.txt", FALSE);
 	soup_session_add_feature(variable->session, SOUP_SESSION_FEATURE(cookie_jar));
 	/* end init session*/
 
@@ -166,14 +198,6 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 		g_print("\nBUG:Mot set action\n");
 		return;	
 	}
-#ifdef DebugVariable
-    g_print("variable=%x \n", variable);
-	
-    if (data == NULL)
-		g_print("Erorr in file (%s) line (%d)\n", __FILE__, __LINE__);
-	if (action == NULL)
-		g_print("Erorr in file (%s) line (%d)\n", __FILE__, __LINE__);
-#endif	
 
     if (!strcmp(method, "GET") || !strcmp(method, "POST")) {
 		char *currpos;
@@ -191,7 +215,6 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 			/*all right it's full url*/
 			realurl = g_strdup(action);
 		} else {			
-			g_print("received %s %s \r\n",action,baseurl);
 			realurl =
 				(gchar *) g_new0(gchar,
 						strlen(action) +
@@ -202,9 +225,10 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 				/*fing first '//' (as example file://) */
 				gchar* startdomain = strstr(realurl,"//");
 				if(startdomain != NULL){
+					gchar* enddomain;
 					/* 2 -- length '//' */
-					startdomain +=2 ;
-					gchar* enddomain = strchr(startdomain,'/');
+					startdomain += 2 ;
+					enddomain = strchr(startdomain,'/');
 					if(enddomain == NULL)
 						enddomain = startdomain;
 					strcpy(enddomain, action);
@@ -213,17 +237,21 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 			} else {
 				/*TODO Test It*/
 				/*not started from slash*/
-				gchar * from = realurl;
+				gchar * lastn;
+				gchar * from;
+				gchar * lastqu;
+				gchar * lastslash;
+				from = realurl;
 				/*search '?'*/
-				gchar * lastqu = strchr(from,'?');
+				lastqu = strchr(from,'?');
 				if(lastqu != NULL)
 					from = lastqu;
 				/*search '#'*/
-				gchar * lastn = strchr(from,'#');
+				lastn = strchr(from,'#');
 				if(lastn != NULL)
 					from = lastn;
 				/*search '/'*/
-				gchar * lastslash = strrchr(from,'/');
+				lastslash = strrchr(from,'/');
 				if(lastslash == NULL)
 				{
 					lastslash = from + strlen(from);
@@ -247,22 +275,23 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 			}
 			currpos++;
 		}
-		loaders *loaders_e = loaders_ref(loaders_new());	
-		/* Enable change content type in engine */
-    	gtk_html_set_default_engine(html, TRUE);
-		loaders_init_internal (loaders_e, variable->session, html, stream, redirect_save);
-		/* load data*/
-		loaders_render(loaders_e, realurl, method, encoding);
-	
-		if (gotocharp)
-			change_position(html, gotocharp, data);
+		{
+			loaders *loaders_e = loaders_ref(loaders_new());	
+			/* Enable change content type in engine */
+			gtk_html_set_default_engine(html, TRUE);
+			loaders_init_internal (loaders_e, variable->session, html, stream, redirect_save);
+			/* load data*/
+			loaders_render(loaders_e, realurl, method, encoding);
+			if (gotocharp)
+				change_position(html, gotocharp, data);
+		}
     } else {
 		g_print("Unknow Metod for url '%s'", realurl);
     }
     free(realurl);
 }
 
-//запросить данные
+/* request content from url */
 static void
 url_requested(GtkHTML * html, const char *url, GtkHTMLStream * stream,
 	      gpointer data)
@@ -272,12 +301,12 @@ url_requested(GtkHTML * html, const char *url, GtkHTMLStream * stream,
     getdata(html, "GET", url, "", stream, data, FALSE);
 }
 
-//нажали на ссылку
+/* click on link */
 static void
 on_link_clicked(GtkHTML * html, const gchar * url, gpointer data)
 {
     g_print("on_link_clicked=%s\n", url);
-    //for url-> base_url#id 
+    /*for url-> base_url#id*/ 
     if (gtk_html_get_base(html))
 		if (!strncmp(url,
 				gtk_html_get_base(html),
@@ -291,27 +320,30 @@ on_link_clicked(GtkHTML * html, const gchar * url, gpointer data)
 					return;
 				}
     {
+		GtkHTMLStream *stream;
 		html_engine_interface_stop_query(data);
-		GtkHTMLStream *stream = gtk_html_begin_content(html, "");
+		stream = gtk_html_begin_content(html, "");
 		gtk_html_set_base (html, url);
 		getdata(html, "GET", url, "", stream, data, TRUE);
     }
 }
 
-//послали с формы
+/* submit from form */
 static void
 on_submit(GtkHTML * html, const gchar * method, const gchar * action,
 	  const gchar * encoding, gpointer data)
 {
+	GtkHTMLStream *stream;
 	html_engine_interface_stop_query(data);
-    GtkHTMLStream *stream = gtk_html_begin_content(html, "");
+    stream = gtk_html_begin_content(html, "");
     getdata(html, method, action, encoding, stream, data, TRUE);
 }
 
-//перенаправление
+/* action redirect */
 static void
 on_redirect(GtkHTML * html, const gchar * url, int delay, gpointer data)
 {
+	/*TODO make redirect*/
     if (delay == 0) {
 		g_print("Redirecting to '%s'\n", url);
 		on_link_clicked(html, url, data);
@@ -321,3 +353,62 @@ on_redirect(GtkHTML * html, const gchar * url, int delay, gpointer data)
 			delay);
     }
 }
+
+static void
+print_footer (GtkHTML *html, GtkPrintContext *context, gdouble x, gdouble y,
+              gdouble width, gdouble height, gpointer user_data)
+{
+	gchar *text;
+	cairo_t *cr;
+	PangoLayout *layout = (PangoLayout *)user_data;
+
+	text = g_strdup(gtk_html_get_base(html));
+	
+	pango_layout_set_width (layout, width * PANGO_SCALE);
+	pango_layout_set_text (layout, text, -1);
+
+	cr = gtk_print_context_get_cairo_context (context);
+
+	cairo_save (cr);
+	cairo_move_to (cr, x, y);
+	pango_cairo_show_layout (cr, layout);
+	cairo_restore (cr);
+
+	g_free (text);
+}
+
+static void
+draw_page_cb (GtkPrintOperation *operation, GtkPrintContext *context,
+              gint page_nr, gpointer user_data)
+{
+	/* XXX GtkHTML's printing API doesn't really fit well with GtkPrint.
+	 *     Instead of calling a function for each page, GtkHTML prints
+	 *     everything in one shot. */
+	PangoLayout *layout;
+	PangoFontDescription *desc;
+	PangoFontMetrics *metrics;
+	gdouble footer_height;
+	GtkHTML * html = (GtkHTML *) user_data;
+
+	desc = pango_font_description_from_string ("Helvetica 12");
+
+	layout = gtk_print_context_create_pango_layout (context);
+	pango_layout_set_alignment (layout, PANGO_ALIGN_CENTER);
+	pango_layout_set_font_description (layout, desc);
+
+	metrics = pango_context_get_metrics (
+		pango_layout_get_context (layout),
+		desc, gtk_get_default_language ());
+	footer_height = (pango_font_metrics_get_ascent (metrics) +
+		pango_font_metrics_get_descent (metrics)) / PANGO_SCALE;
+	pango_font_metrics_unref (metrics);
+
+	pango_font_description_free (desc);
+
+	gtk_html_print_page_with_header_footer (
+		html, context, .0, footer_height,
+		NULL, print_footer, layout);
+
+	g_object_unref (layout);
+}
+
