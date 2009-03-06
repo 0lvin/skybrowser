@@ -90,7 +90,7 @@ void html_engine_interface_print(struct All_variable * variable)
 	g_object_unref (operation);
 }
 
-void html_engine_intreface_go(struct All_variable * variable, gchar *go)
+void html_engine_interface_go(struct All_variable * variable, gchar *go)
 {
 	if(go == NULL)
 		return;
@@ -323,8 +323,9 @@ on_link_clicked(GtkHTML * html, const gchar * url, gpointer data)
 		GtkHTMLStream *stream;
 		html_engine_interface_stop_query(data);
 		stream = gtk_html_begin_content(html, "");
-		gtk_html_set_base (html, url);
 		getdata(html, "GET", url, "", stream, data, TRUE);
+		struct All_variable *variable = (struct All_variable *) data;
+		gtk_entry_set_text (GTK_ENTRY(variable->textentry),g_strdup(url));
     }
 }
 
