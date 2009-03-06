@@ -53,7 +53,7 @@ forward_action(GtkWidget *widget, gpointer data)
 	gchar* text = g_strdup(
 						gtk_entry_get_text(GTK_ENTRY(variable->textentry))
 				);
-	html_engine_intreface_go(variable, text);
+	html_engine_interface_go(variable, text);
 }
 
 static void
@@ -173,7 +173,7 @@ main(int argc, char **argv)
 	/*show new window*/
     gtk_widget_show_all(app);
 	
-	html_engine_intreface_go(variable, argc > 1 ? argv[1] : "http://foto.mail.ru");
+	html_engine_interface_go(variable, argc > 1 ? argv[1] : "http://foto.mail.ru");
     /* run the main loop */
     gtk_main();
 }
