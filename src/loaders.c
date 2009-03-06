@@ -194,7 +194,7 @@ loaders_http_content (loaders* self, const gchar * action, gchar* method, gchar*
 	SoupMessage *msg = NULL;
 	g_return_if_fail (self != NULL);
 	g_return_if_fail (action != NULL);
-	///g_return_if_fail (SOUP_IS_SOCKET (self->priv->session));
+	/*g_return_if_fail (SOUP_IS_SOCKET (self->priv->session));*/
     if (
 		!strncmp(action, "http:", strlen("http:")) ||
 		!strncmp(action, "https:", strlen("https:"))
@@ -222,7 +222,8 @@ loaders_http_content (loaders* self, const gchar * action, gchar* method, gchar*
 					    "Accept-Charset",
 					    "UTF-8, unicode-1-1;q=0.8");
 				/*may be error but current?*/
-				soup_message_headers_append(msg->request_headers, "Referer",
+				if(gtk_html_get_base(self->priv->html) != NULL)
+					soup_message_headers_append(msg->request_headers, "Referer",
 							gtk_html_get_base(self->priv->html));
 			}
 			soup_session_queue_message (self->priv->session, msg, got_data, loaders_ref(self));
