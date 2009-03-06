@@ -23,6 +23,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
+#include <libsoup/soup.h>
 
 /*interface*/
 /*Структур для хранения всех переменных*/
@@ -30,14 +31,17 @@ struct All_variable
 {
     GtkWidget *app;
     GtkWidget *html;
+	GtkWidget *textentry;
     /*текущая сесия, может нужно перенести в параметр обратного вызова */
     SoupSession *session;
 };
 
 struct All_variable* html_engine_intreface_construct();
 
-void html_engine_intreface_go(struct All_variable * variable, char *go);
+void html_engine_interface_print(struct All_variable * variable);
 
-GtkWidget* html_engine_intreface_init(struct All_variable * variable, GtkWidget* app);
+void html_engine_interface_go(struct All_variable * variable, gchar *go);
+
+GtkWidget* html_engine_intreface_init(struct All_variable * variable, GtkWidget* app, GtkWidget* textentry);
 
 #endif
