@@ -59,7 +59,8 @@ forward_action(GtkWidget *widget, gpointer data)
 static void
 back_action(GtkWidget *widget, gpointer data)
 {
-	g_print("not implemented yet");
+	struct All_variable *variable = (struct All_variable *) data;
+	html_engine_interface_back(variable);
 }
 
 /*standart main function*/
