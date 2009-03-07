@@ -69,7 +69,15 @@ draw_page_cb (GtkPrintOperation *operation, GtkPrintContext *context,
 
 struct All_variable *html_engine_intreface_construct()
 {
-	return g_new(struct All_variable, 1);
+	struct All_variable  * variable = g_new(struct All_variable, 1); 
+	variable->list = g_list_alloc ();
+	return variable;
+}
+
+void clean(struct All_variable  * variable)
+{
+	//TODO Clean resurcive
+	g_list_free (variable->list);
 }
 
 void html_engine_interface_print(struct All_variable * variable)
@@ -88,6 +96,34 @@ void html_engine_interface_print(struct All_variable * variable)
 		operation, GTK_PRINT_OPERATION_ACTION_PREVIEW, NULL, NULL);
 
 	g_object_unref (operation);
+}
+
+void html_engine_interface_back(struct All_variable * variable)
+{
+	/*current*/
+	GList*  last = g_list_last (variable->list);
+	if( last != NULL )
+	{
+		gconstpointer data = last->data;
+		if(data != NULL)
+		{
+			variable->list = g_list_remove (variable->list, data);
+			g_free(data);
+		}
+	}
+	/*previous*/
+	last = g_list_last (variable->list);
+	if( last != NULL )
+	{
+		gconstpointer data = last->data;
+		if(data != NULL)
+		{
+			variable->list = g_list_remove (variable->list, data);
+			html_engine_interface_go(variable, data);
+			g_free(data);
+		}
+	}
+
 }
 
 void html_engine_interface_go(struct All_variable * variable, gchar *go)
@@ -303,8 +339,12 @@ url_requested(GtkHTML * html, const char *url, GtkHTMLStream * stream,
 
 /* click on link */
 static void
-on_link_clicked(GtkHTML * html, const gchar * url, gpointer data)
+on_link_clicked(GtkHTML * html, const gchar * go, gpointer data)
 {
+	struct All_variable *variable = (struct All_variable *) data;
+	gchar * url = g_strdup(go);
+	variable->list = g_list_append ( variable->list, url);
+
     g_print("on_link_clicked=%s\n", url);
     /*for url-> base_url#id*/ 
     if (gtk_html_get_base(html))
@@ -324,7 +364,6 @@ on_link_clicked(GtkHTML * html, const gchar * url, gpointer data)
 		html_engine_interface_stop_query(data);
 		stream = gtk_html_begin_content(html, "");
 		getdata(html, "GET", url, "", stream, data, TRUE);
-		struct All_variable *variable = (struct All_variable *) data;
 		gtk_entry_set_text (GTK_ENTRY(variable->textentry),g_strdup(url));
     }
 }

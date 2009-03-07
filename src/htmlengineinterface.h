@@ -34,6 +34,7 @@ struct All_variable
 	GtkWidget *textentry;
     /*текущая сесия, может нужно перенести в параметр обратного вызова */
     SoupSession *session;
+	GList *list;
 };
 
 struct All_variable* html_engine_intreface_construct();
@@ -41,6 +42,8 @@ struct All_variable* html_engine_intreface_construct();
 void html_engine_interface_print(struct All_variable * variable);
 
 void html_engine_interface_go(struct All_variable * variable, gchar *go);
+
+void html_engine_interface_back(struct All_variable * variable);
 
 GtkWidget* html_engine_intreface_init(struct All_variable * variable, GtkWidget* app, GtkWidget* textentry);
 
