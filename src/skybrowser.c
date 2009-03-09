@@ -97,7 +97,7 @@ main(int argc, char **argv)
 	/*action group*/
 	action_table = gtk_table_new (5, 1, FALSE);
 	/*back*/
-	button_back = gtk_button_new_from_stock(GTK_STOCK_GO_BACK);
+	button_back = GTK_WIDGET (gtk_tool_button_new_from_stock(GTK_STOCK_GO_BACK));
 	gtk_table_attach (GTK_TABLE (action_table),
                         button_back,
                         /* X direction */       /* Y direction */
@@ -115,7 +115,7 @@ main(int argc, char **argv)
                         GTK_EXPAND | GTK_FILL,  GTK_EXPAND | GTK_FILL,
                         0,                      0);
 	/*forward*/
-	button_forward = gtk_button_new_from_stock(GTK_STOCK_GO_FORWARD);
+	button_forward = GTK_WIDGET (gtk_tool_button_new_from_stock(GTK_STOCK_GO_FORWARD));
 	gtk_table_attach (GTK_TABLE (action_table),
                         button_forward,
                         /* X direction */       /* Y direction */
@@ -125,7 +125,7 @@ main(int argc, char **argv)
 	g_signal_connect (G_OBJECT (button_forward), "clicked",
 						G_CALLBACK (forward_action), variable);
 	/*print*/
-	button_print = gtk_button_new_from_stock(GTK_STOCK_PRINT);
+	button_print = GTK_WIDGET (gtk_tool_button_new_from_stock(GTK_STOCK_PRINT));
 	gtk_table_attach (GTK_TABLE (action_table),
                         button_print,
                         /* X direction */       /* Y direction */
@@ -135,7 +135,7 @@ main(int argc, char **argv)
 	g_signal_connect (G_OBJECT (button_print), "clicked",
 						G_CALLBACK (print_action), variable);
 	/*quit*/
-	button_quit = gtk_button_new_from_stock(GTK_STOCK_QUIT);
+	button_quit = GTK_WIDGET (gtk_tool_button_new_from_stock(GTK_STOCK_QUIT));
 	gtk_table_attach (GTK_TABLE (action_table),
                         button_quit,
                         /* X direction */       /* Y direction */
