@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.63)
-AC_INIT([skybrowser],[0.2],[pauk.denis@gmail.com])
+AC_INIT([skybrowser],[0.3],[pauk.denis@gmail.com])
 AC_CONFIG_SRCDIR([src/skybrowser.c])
 
 AM_INIT_AUTOMAKE
@@ -26,7 +26,8 @@ AM_CONDITIONAL(HAVE_SOUP, test x$have_soup != xno)
 AC_SUBST(SOUP_CFLAGS)
 AC_SUBST(SOUP_LIBS)
 
-GTKHTML_MODULES="gtk+-unix-print-2.0 >= 2.10.0 libglade-2.0 >= 2.0.0 libgtkhtml-3.14"
+GTKHTML_MODULES="gio-2.0 >= 2.18.0 gtk+-unix-print-2.0 >= 2.10.0 libgtkhtml-3.14"
+
 PKG_CHECK_MODULES(GTKHTML, $GTKHTML_MODULES)
 AC_SUBST(GTKHTML_CFLAGS)
 AC_SUBST(GTKHTML_LIBS)
