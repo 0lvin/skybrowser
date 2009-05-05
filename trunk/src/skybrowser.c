@@ -29,8 +29,8 @@ static gboolean
 on_exit_window(GtkWidget * window, gpointer data)
 {
 	html_engine_interface_stop_query(data);
-    gtk_main_quit();
-    return FALSE;
+	gtk_main_quit();
+	return FALSE;
 }
 
 static void
@@ -51,7 +51,7 @@ forward_action(GtkWidget *widget, gpointer data)
 {
 	struct All_variable *variable = (struct All_variable *) data;
 	gchar* text = g_strdup(
-						gtk_entry_get_text(GTK_ENTRY(variable->textentry))
+			gtk_entry_get_text(GTK_ENTRY(variable->textentry))
 				);
 	html_engine_interface_go(variable, text);
 }
@@ -77,18 +77,20 @@ main(int argc, char **argv)
 	GtkWidget *button_back;
 	GtkWidget *button_print;
 	struct All_variable *variable;
-    /* initialization support i18n */
-    gtk_set_locale();
+	
+	/* initialization support i18n */
+	gtk_set_locale();
 
-    /* init gtk */
-    gtk_init(&argc, &argv);
+	/* init gtk */
+	gtk_init(&argc, &argv);
 
-    /*main window*/
-    app = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_default_size(GTK_WINDOW(app), 640, 480);
+	/*main window*/
+	app = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	
+	gtk_window_set_default_size(GTK_WINDOW(app), 640, 480);
 	
 	variable = html_engine_intreface_construct();	
-    g_signal_connect(app, "delete-event",
+	g_signal_connect(app, "delete-event",
 		     G_CALLBACK(on_exit_window), variable);
 			 
 	/*main table*/
@@ -151,9 +153,9 @@ main(int argc, char **argv)
                         0, 1,                   0, 1,
                         GTK_EXPAND | GTK_FILL,	GTK_SHRINK,
                         0,                      0);
-    /*scrolled content window*/
+	/*scrolled content window*/
 	scrolled_window = gtk_scrolled_window_new(NULL, NULL);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW
 				   (scrolled_window),
 				   GTK_POLICY_AUTOMATIC,
 				   GTK_POLICY_AUTOMATIC);
@@ -167,7 +169,7 @@ main(int argc, char **argv)
 						
 	/* add html render*/
 
-    gtk_container_add(GTK_CONTAINER(scrolled_window),
+	gtk_container_add(GTK_CONTAINER(scrolled_window),
 			GTK_WIDGET(
 				html_engine_interface_init( variable, app, textentry)
 			));
