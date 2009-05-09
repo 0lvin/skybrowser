@@ -195,18 +195,18 @@ loaders_http_content (loaders* self, const gchar * action, gchar* method, gchar*
 	g_return_if_fail (self != NULL);
 	g_return_if_fail (action != NULL);
 	/*g_return_if_fail (SOUP_IS_SOCKET (self->priv->session));*/
-    if (
+	if (
 		!strncmp(action, "http:", strlen("http:")) ||
 		!strncmp(action, "https:", strlen("https:"))
 		) {
 		/*Know methods!!*/
 		if (!strcmp(method, "POST") || !strcmp(method, "GET")) {
 	    	if (!strcmp(method, "POST")) {
-				msg = soup_message_new("POST", action);
-					soup_message_set_request(msg,
-						 "application/x-www-form-urlencoded",
-						SOUP_MEMORY_TAKE, (char *) action,
-					strlen(encoding));
+			msg = soup_message_new("POST", action);
+			soup_message_set_request(msg,
+				"application/x-www-form-urlencoded",
+				SOUP_MEMORY_TAKE, (char *) action,
+				strlen(encoding));
 	    	} else if (!strcmp(method, "GET")) {
 					gchar *tmpstr = g_new(gchar,strlen(action) + strlen(encoding) + 2);				      
 					strcpy(tmpstr, action);
@@ -248,7 +248,7 @@ loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar
 	g_return_val_if_fail (contentType != NULL, NULL);
     if (!strncmp(action, "data:", strlen("data:"))) {
 		const gchar *real_action = action + strlen("data:");
-		const gchar *start_data = strchr(real_action, ';');
+		const gchar *start_data = strrchr(real_action, ';');
 		if (start_data != NULL) {
 			gsize ContentType_length = start_data - real_action;
 			*contentType = g_new(gchar, ContentType_length + 1);
