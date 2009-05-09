@@ -1,5 +1,5 @@
 diff --git a/gtkhtml/gtkhtml.c b/gtkhtml/gtkhtml.c
-index cc168b2..942d5cd 100644
+index cc168b2..295e87b 100644
 --- a/gtkhtml/gtkhtml.c
 +++ b/gtkhtml/gtkhtml.c
 @@ -200,6 +200,8 @@ static void	gtk_html_adjust_cursor_position (GtkHTML *html);
@@ -80,7 +80,7 @@ index cc168b2..942d5cd 100644
 -	g_free (expanded);
 +	if (!strncmp (url, "data:", 5)) {
 +		const gchar *real_action = url + strlen ("data:");
-+		const gchar *start_data = strchr (real_action, ';');
++		const gchar *start_data = strrchr (real_action, ';');
 +		if (start_data != NULL) {
 +			gchar *ContentType = NULL;
 +			guchar *buf = NULL;
