@@ -1,0 +1,117 @@
+diff --git a/gtkhtml/gtkhtml.c b/gtkhtml/gtkhtml.c
+index cc168b2..942d5cd 100644
+--- a/gtkhtml/gtkhtml.c
++++ b/gtkhtml/gtkhtml.c
+@@ -200,6 +200,8 @@ static void	gtk_html_adjust_cursor_position (GtkHTML *html);
+ static gboolean any_has_cursor_moved (GtkHTML *html);
+ static gboolean any_has_skip_update_cursor (GtkHTML *html);
+ 
++static gchar *decode(const gchar * token);
++
+ /* Interval for scrolling during selection.  */
+ #define SCROLL_TIMEOUT_INTERVAL 10
+ 
+@@ -483,6 +485,50 @@ html_engine_load_done_cb (HTMLEngine *engine, gpointer data)
+ 	g_signal_emit (gtk_html, signals[LOAD_DONE], 0);
+ }
+ 
++/*unescape url*/
++static gchar *
++decode(const gchar * token)
++{
++    const gchar *full_pos;
++    gchar *resulted;
++    gchar *write_pos;
++    const gchar *read_pos;
++
++    if (token == NULL)
++		return NULL;
++
++    /*stop pointer */
++    full_pos = token + strlen (token);
++    resulted = g_new (gchar, strlen(token) + 1);
++    write_pos = resulted;
++    read_pos = token;
++    while (read_pos < full_pos) {
++	size_t count_chars = strcspn (read_pos, "%");
++
++	memcpy (write_pos, read_pos, count_chars);
++	write_pos += count_chars;
++	read_pos += count_chars;
++	/*may be end string? */
++	if (read_pos < full_pos)
++	    if (*read_pos == '%') {
++		/*skip not needed % */
++		read_pos++;
++		if (*(read_pos) != 0)
++		    if (*(read_pos + 1) != 0) {
++				gchar save[3];
++				save[0] = *read_pos;
++				save[1] = *(read_pos + 1);
++				save[2] = 0;
++				(*write_pos) = strtol (save, NULL, 16);
++				write_pos += 1;
++				read_pos += 2;
++		    }
++	    }
++    }
++    *write_pos = 0;
++    return resulted;
++}
++
+ static void
+ html_engine_url_requested_cb (HTMLEngine *engine,
+ 			      const gchar *url,
+@@ -491,14 +537,49 @@ html_engine_url_requested_cb (HTMLEngine *engine,
+ {
+ 	GtkHTML *gtk_html;
+ 	char *expanded = NULL;
++	
++	if (!url)
++		return;
++		
+ 	gtk_html = GTK_HTML (data);
+ 
+ 	if (engine->stopped)
+ 		return;
+ 
+-	expanded = gtk_html_get_url_base_relative (gtk_html, url);
+-	g_signal_emit (gtk_html, signals[URL_REQUESTED], 0, expanded, handle);
+-	g_free (expanded);
++	if (!strncmp (url, "data:", 5)) {
++		const gchar *real_action = url + strlen ("data:");
++		const gchar *start_data = strchr (real_action, ';');
++		if (start_data != NULL) {
++			gchar *ContentType = NULL;
++			guchar *buf = NULL;
++			gsize ContentType_length = start_data - real_action;
++			ContentType = g_new (gchar, ContentType_length + 1);
++			memcpy (ContentType, real_action, ContentType_length);
++			*(ContentType + ContentType_length) = 0;
++			gtk_html_set_default_content_type (gtk_html, ContentType);
++			g_free (ContentType);
++			if (!strncmp (start_data, ";base64,", strlen (";base64,"))) {
++				gint state = 0;
++				guint save = 0;
++				gsize length = 0;
++				const gchar * toDecode = start_data + strlen(";base64,");
++				gchar *result_decode = decode(toDecode);
++				buf = g_new (guchar, (strlen (result_decode) * 3) / 4 + 3);
++				length = g_base64_decode_step (result_decode,
++					       strlen(result_decode),
++					       buf, &state, &save);
++				gtk_html_write (gtk_html, handle, (gchar *)buf, length);
++				gtk_html_end (gtk_html, handle, GTK_HTML_STREAM_OK);
++				g_free (result_decode);
++				g_free (buf);
++			} else
++				gtk_html_end (gtk_html, handle, GTK_HTML_STREAM_ERROR);
++		}
++	} else {
++		expanded = gtk_html_get_url_base_relative (gtk_html, url);
++		g_signal_emit (gtk_html, signals[URL_REQUESTED], 0, expanded, handle);
++		g_free (expanded);
++	}
+ }
+ 
+ static void
