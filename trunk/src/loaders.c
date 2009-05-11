@@ -257,7 +257,6 @@ loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar
 			const char *endcontent = start_data;
 			gchar *result_decode = NULL;
 			/* is base 64?*/
-			g_print("start_data %s",start_data - 7 );
 			if ( (start_data - real_action) > 7 ) /*8 == strlen(";base64,")*/
 				if (!strncmp(start_data - 7, ";base64",  7)) {
 					isbase64 = 1;
@@ -269,10 +268,10 @@ loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar
 				*contentType = g_new(gchar, ContentType_length + 1);
 				memcpy(*contentType, real_action, ContentType_length);
 				*(*contentType + ContentType_length) = 0;
-#ifdef DebugLoaders*/
+#ifdef DebugLoaders
 				g_print("internal data query used: Content_type %s\n", *contentType);
-			}
 #endif
+			}
 			/*unescape content*/
 			result_decode = decode(start_data + 1); /* skip ','*/
 			*length = strlen( result_decode );
