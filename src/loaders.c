@@ -198,7 +198,7 @@ loaders_http_content (loaders* self, const gchar * action, gchar* method, gchar*
 	if (
 		!strncmp(action, "http:", strlen("http:")) ||
 		!strncmp(action, "https:", strlen("https:"))
-		) {
+	) {
 		/*Know methods!!*/
 		if (!strcmp(method, "POST") || !strcmp(method, "GET")) {
 	    	if (!strcmp(method, "POST")) {
@@ -238,7 +238,9 @@ loaders_http_content (loaders* self, const gchar * action, gchar* method, gchar*
 	}
 }
 
-/*receive content by static data from url*/
+/*receive content by static data from url
+ * data:[<MIME-type>][;charset="<encoding>"][;base64],<data>
+ * */
 gchar*
 loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar ** contentType) {
 	guchar *buf = NULL;
@@ -246,31 +248,50 @@ loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar
 	g_return_val_if_fail (action != NULL, NULL);
 	g_return_val_if_fail (length != NULL, NULL);
 	g_return_val_if_fail (contentType != NULL, NULL);
-    if (!strncmp(action, "data:", strlen("data:"))) {
-		const gchar *real_action = action + strlen("data:");
-		const gchar *start_data = strrchr(real_action, ';');
+	if (!strncmp(action, "data:", 5 /*strlen("data:")*/)) {
+		const gchar *real_action = action + 5 /*strlen("data:")*/;
+		/*find first ','*/
+		const gchar *start_data = strchr(real_action, ',');
 		if (start_data != NULL) {
-			gsize ContentType_length = start_data - real_action;
-			*contentType = g_new(gchar, ContentType_length + 1);
-			memcpy(*contentType, real_action, ContentType_length);
-			*(*contentType + ContentType_length) = 0;
-#ifdef DebugLoaders
-			g_print("internal data query used: Content_type %s\n", *contentType);
+			int isbase64 = 0;
+			const char *endcontent = start_data;
+			gchar *result_decode = NULL;
+			/* is base 64?*/
+			g_print("start_data %s",start_data - 7 );
+			if ( (start_data - real_action) > 7 ) /*8 == strlen(";base64,")*/
+				if (!strncmp(start_data - 7, ";base64",  7)) {
+					isbase64 = 1;
+					endcontent -= 7;
+				}
+			/* get content type */
+			{
+				gsize ContentType_length = endcontent - real_action;
+				*contentType = g_new(gchar, ContentType_length + 1);
+				memcpy(*contentType, real_action, ContentType_length);
+				*(*contentType + ContentType_length) = 0;
+#ifdef DebugLoaders*/
+				g_print("internal data query used: Content_type %s\n", *contentType);
+			}
 #endif
-			if (!strncmp(start_data, ";base64,", strlen(";base64,"))) {
+			/*unescape content*/
+			result_decode = decode(start_data + 1); /* skip ','*/
+			*length = strlen( result_decode );
+			if (isbase64) {
 				gint state = 0;
-				guint save = 0;
-				const gchar * toDecode = start_data + strlen(";base64,");
-				gchar *result_decode = decode(toDecode);
-				buf = g_new(guchar,(strlen(result_decode) * 3) / 4 + 1);
+				guint save = 0;				
+				buf = g_new(guchar,( (*length) * 3) / 4 + 3);
 				*length = g_base64_decode_step(result_decode,
 					       strlen(result_decode),
 					       buf, &state, &save);
 #ifdef DebugLoaders						   
 				g_print("using base64!!%s", result_decode);
 #endif
-				g_free(result_decode);
+			} else {
+				buf = g_new(guchar, (*length) + 1);
+				buf [*length] = 0;
+				memcpy(buf, result_decode, *length);
 			}
+			g_free(result_decode);			
 		}
     }
     return (gchar *)buf;
