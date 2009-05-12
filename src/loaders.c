@@ -253,13 +253,13 @@ loaders_data_content (loaders* self, const gchar * action, gsize * length, gchar
 		/*find first ','*/
 		const gchar *start_data = strchr(real_action, ',');
 		if (start_data != NULL) {
-			int isbase64 = 0;
+			gboolean isbase64 = FALSE;
 			const char *endcontent = start_data;
 			gchar *result_decode = NULL;
 			/* is base 64?*/
 			if ( (start_data - real_action) > 7 ) /*8 == strlen(";base64,")*/
 				if (!strncmp(start_data - 7, ";base64",  7)) {
-					isbase64 = 1;
+					isbase64 = TRUE;
 					endcontent -= 7;
 				}
 			/* get content type */
