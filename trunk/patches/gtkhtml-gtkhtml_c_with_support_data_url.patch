@@ -1,5 +1,5 @@
 diff --git a/gtkhtml/gtkhtml.c b/gtkhtml/gtkhtml.c
-index cc168b2..89ad354 100644
+index cc168b2..87d8b3c 100644
 --- a/gtkhtml/gtkhtml.c
 +++ b/gtkhtml/gtkhtml.c
 @@ -200,6 +200,11 @@ static void	gtk_html_adjust_cursor_position (GtkHTML *html);
@@ -14,7 +14,7 @@ index cc168b2..89ad354 100644
  /* Interval for scrolling during selection.  */
  #define SCROLL_TIMEOUT_INTERVAL 10
  
-@@ -483,6 +488,116 @@ html_engine_load_done_cb (HTMLEngine *engine, gpointer data)
+@@ -483,6 +488,125 @@ html_engine_load_done_cb (HTMLEngine *engine, gpointer data)
  	g_signal_emit (gtk_html, signals[LOAD_DONE], 0);
  }
  
@@ -62,6 +62,12 @@ index cc168b2..89ad354 100644
 +    return resulted;
 +}
 +
++/*
++ * support data url by RFC 2397
++ * dataurl := "data:" [ contentType ] [ ";base64" ] "," data
++ * 
++ * return content and as params: content length and content type
++ */
 +static gchar*
 +get_data_url (const gchar * action, gsize * length, gchar ** contentType) {
 +	guchar *buf = NULL;
@@ -110,6 +116,9 @@ index cc168b2..89ad354 100644
 +    return (gchar *)buf;	
 +}
 +
++/*
++ * write content for data url to stream
++ */
 +static void
 +get_data_url_content(GtkHTML * html, GtkHTMLStream * stream, const gchar* url) {
 +	gsize length = 0;
@@ -131,7 +140,7 @@ index cc168b2..89ad354 100644
  static void
  html_engine_url_requested_cb (HTMLEngine *engine,
  			      const gchar *url,
-@@ -491,14 +606,22 @@ html_engine_url_requested_cb (HTMLEngine *engine,
+@@ -491,14 +615,23 @@ html_engine_url_requested_cb (HTMLEngine *engine,
  {
  	GtkHTML *gtk_html;
  	char *expanded = NULL;
@@ -143,10 +152,12 @@ index cc168b2..89ad354 100644
  
  	if (engine->stopped)
  		return;
- 
+-
 -	expanded = gtk_html_get_url_base_relative (gtk_html, url);
 -	g_signal_emit (gtk_html, signals[URL_REQUESTED], 0, expanded, handle);
 -	g_free (expanded);
++	
++	/* RFC 2397 (data url) */
 +	if (!strncmp (url, "data:", 5)) {
 +		get_data_url_content( gtk_html, handle, url);
 +	} else {
@@ -157,7 +168,7 @@ index cc168b2..89ad354 100644
  }
  
  static void
-@@ -1031,6 +1154,21 @@ update_mouse_cursor (GtkWidget *widget, guint state)
+@@ -1031,6 +1164,22 @@ update_mouse_cursor (GtkWidget *widget, guint state)
  	motion_notify_event (widget, &event);
  }
  
@@ -167,6 +178,7 @@ index cc168b2..89ad354 100644
 +	if (!url)
 +		return;
 +		
++	/* RFC 2397 (data url) */
 +	if (!strncmp (url, "data:", 5)) {
 +		GtkHTMLStream *stream;
 +		stream = gtk_html_begin_content(html, "");
@@ -179,7 +191,7 @@ index cc168b2..89ad354 100644
  static gint
  key_press_event (GtkWidget *widget, GdkEventKey *event)
  {
-@@ -1096,7 +1234,7 @@ key_press_event (GtkWidget *widget, GdkEventKey *event)
+@@ -1096,7 +1245,7 @@ key_press_event (GtkWidget *widget, GdkEventKey *event)
  					/* printf ("link clicked: %s\n", url); */
                                          if (HTML_IS_TEXT(focus_object)) {
  						html_text_set_link_visited (HTML_TEXT (focus_object), focus_object_offset, html->engine, TRUE);
@@ -188,7 +200,7 @@ index cc168b2..89ad354 100644
  					}
  					g_free (url);
  				}
-@@ -2063,7 +2201,7 @@ button_release_event (GtkWidget *initial_widget,
+@@ -2063,7 +2212,7 @@ button_release_event (GtkWidget *initial_widget,
  		if (!html->priv->dnd_in_progress
  		    && html->pointer_url != NULL && ! html->in_selection
  		    && (!gtk_html_get_editable (html) || html->priv->in_url_test_mode)) {
