@@ -35,9 +35,6 @@ static void load_done(GtkHTML * html);
 /*on url*/
 static void on_url(GtkHTML * html, const gchar * url, gpointer data);
 
-/*Передвинуться на позицию в html*/
-static void change_position(GtkHTML * html, const gchar * position, gpointer data);
-
 /*получить даннык по ссылке*/
 static void getdata(GtkHTML * html, const gchar * method, const gchar * action,
 	const gchar * encoding, GtkHTMLStream * stream, gpointer data,
@@ -211,13 +208,6 @@ on_url(GtkHTML * html, const gchar * url, gpointer data)
     g_print("on_url=%s\n", url);
 }
 
-/*Передвинуться на позицию в html*/
-static void
-change_position(GtkHTML * html, const gchar * position, gpointer data)
-{
-    g_print("Fix Me goto position '%s' in html not implemented\n", position);
-}
-
 /*получить даннык по ссылке*/
 static void
 getdata(GtkHTML * html, const gchar * method, const gchar * action,
@@ -319,7 +309,7 @@ getdata(GtkHTML * html, const gchar * method, const gchar * action,
 			/* load data*/
 			loaders_render(loaders_e, realurl, method, encoding);
 			if (gotocharp)
-				change_position(html, gotocharp, data);
+				gtk_html_jump_to_anchor (html, gotocharp);
 		}
     } else {
 		g_print("Unknow Metod for url '%s'", realurl);
@@ -354,9 +344,7 @@ on_link_clicked(GtkHTML * html, const gchar * go, gpointer data)
 				)
 			)
 				if (*(url + strlen(gtk_html_get_base(html))) == '#') {
-					change_position(html,
-						url + strlen(gtk_html_get_base(html)) + 1,
-						data);
+					gtk_html_jump_to_anchor (html, url + strlen(gtk_html_get_base(html)) + 1);
 					return;
 				}
     {
