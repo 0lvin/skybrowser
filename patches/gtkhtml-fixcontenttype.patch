@@ -120,6 +120,74 @@ index 400c60c..4eb59ae 100644
  typedef void   (* GtkHTMLStreamWriteFunc) (GtkHTMLStream *stream,
  					   const gchar *buffer,
  					   size_t size,
+diff --git a/gtkhtml/gtkhtml.c b/gtkhtml/gtkhtml.c
+index cc168b2..3eae076 100644
+--- a/gtkhtml/gtkhtml.c
++++ b/gtkhtml/gtkhtml.c
+@@ -3708,6 +3708,22 @@ gtk_html_begin_content (GtkHTML *html, gchar *content_type)
+ }
+ 
+ /**
++ * gtk_html_set_mime_type:
++ * @html: the GtkHTML widget the stream belongs to (unused)
++ * @handle: the GkHTMLStream to write to.
++ * @mime_type: stream mime type.
++ *
++ * Set @mime_type for content in @stream.
++ **/
++void
++gtk_html_set_mime_type (GtkHTML *html,
++		GtkHTMLStream *handle,
++		const gchar *mime_type)
++{
++	gtk_html_stream_mime (handle, mime_type);
++}
++
++/**
+  * gtk_html_write:
+  * @html: the GtkHTML widget the stream belongs to (unused)
+  * @handle: the GkHTMLStream to write to.
+@@ -4663,13 +4679,25 @@ gtk_html_get_default_engine(GtkHTML *html)
+ 	return html_engine_get_engine_type( html->engine);
+ }
+ 
+-
++/**
++ * gtk_html_set_default_content_type:
++ * @html: the GtkHTML widget
++ * @content_type: default content for main page.
++ *
++ * Set default @content_type for main page in @html widget.
++ **/
+ void
+ gtk_html_set_default_content_type (GtkHTML *html, const gchar *content_type)
+ {   
+     html_engine_set_content_type( html->engine, content_type);
+ }
+ 
++/**
++ * gtk_html_get_default_content_type:
++ * @html: the GtkHTML widget
++ *
++ * Returns: default content_type for main page in @html widget.
++ **/
+ const gchar*
+ gtk_html_get_default_content_type (GtkHTML *html)
+ {   
+diff --git a/gtkhtml/gtkhtml.h b/gtkhtml/gtkhtml.h
+index 0120c76..535e446 100644
+--- a/gtkhtml/gtkhtml.h
++++ b/gtkhtml/gtkhtml.h
+@@ -165,6 +165,9 @@ void                       gtk_html_write                         (GtkHTML
+ 								   GtkHTMLStream             *handle,
+ 								   const gchar               *buffer,
+ 								   size_t                     size);
++void                       gtk_html_set_mime_type                 (GtkHTML                   *html,
++								   GtkHTMLStream             *handle,
++								   const gchar               *mime_type);
+ void                       gtk_html_end                           (GtkHTML                   *html,
+ 								   GtkHTMLStream             *handle,
+ 								   GtkHTMLStreamStatus        status);
 diff --git a/gtkhtml/htmlengine.c b/gtkhtml/htmlengine.c
 index 833f6fe..e35eb75 100644
 --- a/gtkhtml/htmlengine.c
@@ -190,3 +258,16 @@ index 2e105c1..fe5ac06 100644
  				    ip);
  }
  
+diff --git a/gtkhtml/testgtkhtml.c b/gtkhtml/testgtkhtml.c
+index c0de89b..3fa59d1 100644
+--- a/gtkhtml/testgtkhtml.c
++++ b/gtkhtml/testgtkhtml.c
+@@ -666,7 +666,7 @@ got_data (SoupSession *session, SoupMessage *msg, gpointer user_data)
+ 	ContentType = soup_message_headers_get (msg->response_headers, "Content-type");
+ 
+ 	if (ContentType != NULL)
+-		gtk_html_set_default_content_type (html, ContentType);
++		gtk_html_set_mime_type (html, handle, ContentType);
+ 
+ 	gtk_html_write (html, handle, msg->response_body->data,
+ 			msg->response_body->length);
