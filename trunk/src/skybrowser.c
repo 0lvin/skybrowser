@@ -168,15 +168,14 @@ main(int argc, char **argv)
                         0,                      0);
 						
 	/* add html render*/
-
 	gtk_container_add(GTK_CONTAINER(scrolled_window),
 			GTK_WIDGET(
 				html_engine_interface_init( variable, app, textentry)
 			));
 	/*show new window*/
-    gtk_widget_show_all(app);
+	gtk_widget_show_all(app);
 	
 	html_engine_interface_go(variable, argc > 1 ? argv[1] : "http://foto.mail.ru");
-    /* run the main loop */
-    gtk_main();
+	/* run the main loop */
+	gtk_main();
 }
