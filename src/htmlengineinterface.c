@@ -73,7 +73,7 @@ struct All_variable *html_engine_intreface_construct()
 
 void clean(struct All_variable  * variable)
 {
-	//TODO Clean resurcive
+	/*TODO Clean resurcive*/
 	g_list_free (variable->list);
 }
 
@@ -335,19 +335,19 @@ on_link_clicked(GtkHTML * html, const gchar * go, gpointer data)
 	gchar * url = g_strdup(go);
 	variable->list = g_list_append ( variable->list, url);
 
-    g_print("on_link_clicked=%s\n", url);
-    /*for url-> base_url#id*/ 
-    if (gtk_html_get_base(html))
+	g_print("on_link_clicked=%s\n", url);
+	/*for url-> base_url#id*/ 
+	if (gtk_html_get_base(html))
 		if (!strncmp(url,
 				gtk_html_get_base(html),
 				strlen(gtk_html_get_base(html))
 				)
-			)
+		)
 				if (*(url + strlen(gtk_html_get_base(html))) == '#') {
 					gtk_html_jump_to_anchor (html, url + strlen(gtk_html_get_base(html)) + 1);
 					return;
 				}
-    {
+	{
 		GtkHTMLStream *stream;
 		html_engine_interface_stop_query(data);
 		stream = gtk_html_begin_content(html, "");

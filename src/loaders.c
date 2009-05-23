@@ -82,9 +82,12 @@ loaders_render(loaders *self, const gchar *action, const gchar * method,
 				return;
 			}
 		
-    if (buf == NULL)
+	if (buf == NULL) {
 		buf = loaders_default_content(self, action, &length, &ContentType);
-
+		if (buf && self->priv->redirect_save)
+			gtk_html_set_base (self->priv->html, action);
+	}
+	
 	loaders_renderbuf(self, buf, length, ContentType);
 	
 	if(buf != NULL)
@@ -99,15 +102,15 @@ loaders_renderbuf(loaders* self, gchar *buf, size_t length, gchar *ContentType){
 		static gchar html_source[] = "<html><body>Error while read file</body><html>";
 		buf = g_strdup(html_source);
 		length = strlen(html_source);
-    }
+	}
 	
 	if (buf != NULL) {
-    	if (ContentType != NULL)
+		if (ContentType != NULL)
 			gtk_html_set_default_content_type(self->priv->html, ContentType);
     
 		gtk_html_stream_write(self->priv->stream, buf, length);
 		gtk_html_stream_close(self->priv->stream, GTK_HTML_STREAM_OK);
-    }
+	}
 }
 
 /*unescape url*/
@@ -166,7 +169,7 @@ got_data (SoupSession *session, SoupMessage *msg, gpointer user_data)
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
 		g_warning ("%d - %s", msg->status_code, msg->reason_phrase);			
 	} else if (msg->status_code >= 200 && msg->status_code < 300) {
-		if (self->priv->redirect_save == TRUE) {
+		if (self->priv->redirect_save) {
 			gchar* curr_base = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
 			gtk_html_set_base (self->priv->html, curr_base);
 			g_free(curr_base);
